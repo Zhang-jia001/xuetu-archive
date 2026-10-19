@@ -1,0 +1,39 @@
+# 只放"平台本身"。内部资料（记忆、四校服务方案、报告卡、学员姓名）不进公开仓库。
+/*
+
+!/README.md
+!/.gitignore
+
+# 后端
+!/server/
+
+# 交付：单文件前端（离线可用）
+!/竞赛指导台_学生版.html
+
+# 前端源码与构建
+!/working/
+/working/*
+!/working/竞赛指导台/
+!/working/执行方案/
+/working/执行方案/*
+!/working/执行方案/comps.py
+!/working/执行方案/topic_guide.py
+!/working/执行方案/exec_plan.py
+!/working/执行方案/dev_schedule.py
+!/working/执行方案/defense_kit.py
+!/working/执行方案/paper_kit.py
+!/working/执行方案/coach_kit.py
+!/working/选题生成/
+/working/选题生成/*
+!/working/选题生成/topics_all.json
+
+# 运行时产物
+data/
+node_modules/
+__pycache__/
+*.log
+.DS_Store
+
+# 备份/副本不进仓库
+*.bak
+/working/竞赛指导台/src/v2.css

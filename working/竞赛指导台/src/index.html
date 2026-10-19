@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>竞赛指导台 · 选题 组队 推进 结项 论文</title>
+<style>/*__CSS__*/</style>
+</head>
+<body>
+<div class="app">
+
+  <aside class="side">
+    <div class="brand">
+      <div class="brand-mark"></div>
+      <div class="brand-text">
+        <div class="brand-title">竞赛指导台</div>
+        <div class="brand-sub">选题 · 组队 · 推进 · 结项 · 论文</div>
+      </div>
+    </div>
+
+    <nav class="nav" id="nav">
+      <button class="nav-item is-on" data-go="coach">
+        <span class="nav-num">01</span><span class="nav-label">今天做什么</span>
+        <span class="nav-badge" id="navCoachDone">0/33</span>
+      </button>
+
+      <button class="nav-item" data-go="home">
+        <span class="nav-num">02</span><span class="nav-label">我的工作台</span>
+        <span class="nav-badge" id="navProjCount">0</span>
+      </button>
+
+      <div class="nav-group">
+        <div class="nav-group-title">项目空间</div>
+        <button class="nav-item" data-go="project" id="navProject" disabled>
+          <span class="nav-num">03</span><span class="nav-label">当前项目</span><span class="nav-dot"></span>
+        </button>
+        <div class="nav-sub" id="navSub">
+          <button class="nav-item sub" data-tab="overview" disabled>
+            <span class="nav-num">—</span><span class="nav-label">概览</span>
+          </button>
+          <button class="nav-item sub" data-tab="topic" disabled>
+            <span class="nav-num">①</span><span class="nav-label">选题</span><span class="nav-pct"></span>
+          </button>
+          <button class="nav-item sub" data-tab="team" disabled>
+            <span class="nav-num">②</span><span class="nav-label">组队</span><span class="nav-pct"></span>
+          </button>
+          <button class="nav-item sub" data-tab="run" disabled>
+            <span class="nav-num">③</span><span class="nav-label">推进</span><span class="nav-pct"></span>
+          </button>
+          <button class="nav-item sub" data-tab="close" disabled>
+            <span class="nav-num">④</span><span class="nav-label">结项</span><span class="nav-pct"></span>
+          </button>
+        </div>
+      </div>
+
+      <div class="nav-group">
+        <div class="nav-group-title">资料</div>
+        <button class="nav-item" data-go="library">
+          <span class="nav-num">04</span><span class="nav-label">资源库</span>
+        </button>
+        <button class="nav-item" data-go="mentor">
+          <span class="nav-num">05</span><span class="nav-label">评审与答疑</span>
+        </button>
+      </div>
+
+      <div class="nav-group">
+        <div class="nav-group-title">论文</div>
+        <button class="nav-item" data-go="paper">
+          <span class="nav-num">06</span><span class="nav-label">论文写作台</span>
+        </button>
+      </div>
+    </nav>
+
+    <div class="side-foot">
+      <div class="mini-progress">
+        <div class="mini-progress-head"><span>当前项目完成</span><span class="mono" id="miniPct">—</span></div>
+        <div class="mini-bar"><i id="miniBar"></i></div>
+      </div>
+      <div class="side-actions">
+        <button class="mini-btn" id="btnReset">重置</button>
+        <button class="mini-btn" id="btnPrint">导出</button>
+      </div>
+    </div>
+  </aside>
+
+  <main class="main">
+    <div class="topbar">
+      <div class="crumb" id="crumb">
+        <b>我的工作台</b>
+      </div>
+      <div class="topbar-spacer"></div>
+      <span class="pill" id="pillDeadline" hidden><span class="dot"></span><span id="pillDeadlineText"></span></span>
+      <span class="auth-chip" id="authChip"></span>
+    </div>
+
+    <!-- ============ 今天做什么（陪跑） ============ -->
+    <section class="view is-on" id="view-coach">
+      <div class="home-head">
+        <div>
+          <h1>今天做什么</h1>
+          <p>一次只做一件事。做完这步，下一步自动解锁</p>
+        </div>
+      </div>
+      <div id="coachBody"></div>
+      <div class="foot"><span>竞赛指导台 · 陪跑</span><span>步骤按真实比赛节奏排，可随时回退</span></div>
+    </section>
+
+    <!-- ============ 我的工作台 ============ -->
+    <section class="view" id="view-home">
+      <div class="home-head">
+        <div>
+          <h1>我的竞赛工作台</h1>
+          <p>输入赛事与方向，生成一个从选题走到结项的项目空间</p>
+        </div>
+      </div>
+
+      <div class="new-panel" id="newPanel">
+        <div class="step-label"><span class="k">新建</span> 输入赛事与选题方向</div>
+        <div class="mini-ev" id="miniEv"></div>
+        <div class="query-row" style="margin-top:10px">
+          <input class="input" id="queryInput" placeholder="选题方向，例如：老年助餐、非遗文创、审计风控、农业物联网…" autocomplete="off">
+          <button class="btn" id="btnGenerate" disabled>生成方案</button>
+        </div>
+        <div class="form-grid">
+          <div class="field">
+            <label>学校</label>
+            <select class="input sm" id="schoolSel">
+              <option value="">不限</option>
+              <option value="南京财经大学">南京财经大学</option>
+              <option value="南京审计大学">南京审计大学</option>
+              <option value="南京林业大学">南京林业大学</option>
+              <option value="南京工业职业技术大学">南京工业职业技术大学</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>技术轨道</label>
+            <select class="input sm" id="majorSel">
+              <option value="">不限</option>
+              <option value="商科">商科</option>
+              <option value="计算机">计算机</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>材料提交截止日</label>
+            <input class="input sm" type="date" id="deadlineInput">
+          </div>
+        </div>
+        <div class="hint-bar">
+          <span>不确定选哪个赛事？</span>
+          <button class="btn ghost sm" id="btnLibraryHint">去资源库看六赛事口径</button>
+          <button class="btn ghost sm" id="btnDemo">看示例</button>
+        </div>
+      </div>
+
+      <div class="sec" id="projSec" hidden>
+        <div class="sec-head">
+          <span class="sec-num">我的项目</span>
+          <h2 class="sec-title">进行中的竞赛</h2>
+          <span class="sec-note">点开继续推进</span>
+        </div>
+        <div class="proj-grid" id="projGrid"></div>
+      </div>
+
+      <div class="sec" id="quickSec">
+        <div class="sec-head">
+          <span class="sec-num">开工前</span>
+          <h2 class="sec-title">先把这三件事想清楚</h2>
+        </div>
+        <div class="grid-2">
+          <div>
+            <h4>1 · 这个赛事到底要交什么</h4>
+            <p class="small muted">六个赛事的材料形态完全不同：正大杯交报告，国创赛交 BP，4C 交作品，大创要结题验收。
+              先确认「最终交付物」，再决定做什么。资源库里有六个赛事的硬约束原文。</p>
+            <h4>2 · 这个方向的数据或场景拿不拿得到</h4>
+            <p class="small muted">选题九成死在「想得到、拿不到」。问卷样本、访谈对象、设备场地、机构盖章，
+              任何一项本周内落不了地，就换题，别等第 6 周发现。</p>
+            <h4>3 · 队伍里有没有人能扛主链路</h4>
+            <p class="small muted">两个人扛全部产出，其余人贴发票，是最常见的死法。
+              组队阶段的核心不是凑人数，是把每个岗位切成两层难度。</p>
+          </div>
+          <div>
+            <h4>常见时间窗（往届口径，以当年通知为准）</h4>
+            <div class="tbl-wrap"><table><thead><tr><th>赛事</th><th>关键节点</th></tr></thead><tbody id="quickWindows"></tbody></table></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="foot"><span>竞赛指导台 · 学生版</span><span>数据存在本机浏览器，换设备不同步</span></div>
+    </section>
+
+    <!-- ============ 项目空间 ============ -->
+    <section class="view" id="view-project">
+      <div class="proj-head">
+        <div class="proj-head-top">
+          <div style="flex:1;min-width:240px">
+            <h1 id="pdTitle">—</h1>
+            <div class="proj-head-meta" id="pdMeta"></div>
+          </div>
+          <div class="proj-head-side">
+            <div class="big-num" id="pdDays">—</div>
+            <div class="faint small" id="pdDaysNote">距截止</div>
+          </div>
+        </div>
+        <div class="stepper" id="stepper"></div>
+      </div>
+
+      <div id="ptab-overview" class="ptab"></div>
+      <div id="ptab-topic" class="ptab" hidden></div>
+      <div id="ptab-team" class="ptab" hidden></div>
+      <div id="ptab-run" class="ptab" hidden></div>
+      <div id="ptab-close" class="ptab" hidden></div>
+
+      <div class="foot"><span>竞赛指导台 · 项目空间</span><span id="footProj"></span></div>
+    </section>
+
+    <!-- ============ 资源库 ============ -->
+    <section class="view" id="view-library">
+      <div class="home-head">
+        <div>
+          <h1>资源库</h1>
+          <p>六赛事硬约束 · 十三类打法 · 一百二十条选题，全部可查可引用</p>
+        </div>
+      </div>
+      <div class="seg" id="libSeg">
+        <button data-lib="events" class="is-on">赛事口径</button>
+        <button data-lib="families">方向族打法</button>
+        <button data-lib="topics">选题池</button>
+      </div>
+      <div id="libBody"></div>
+      <div class="foot"><span>竞赛指导台 · 资源库</span><span>口径来源：六赛事官方通知 + 四校执行手册</span></div>
+    </section>
+
+    <!-- ============ 评审与答疑 ============ -->
+    <section class="view" id="view-mentor">
+      <div class="home-head">
+        <div>
+          <h1>评审与答疑</h1>
+          <p>什么时间该找谁看、被问住了怎么答</p>
+        </div>
+      </div>
+
+      <div class="sec">
+        <div class="sec-head">
+          <span class="sec-num">05.1</span>
+          <h2 class="sec-title">三个必须到场评审的节点</h2>
+          <span class="sec-note" id="mentorSrc"></span>
+        </div>
+        <div class="tbl-wrap"><table>
+          <thead><tr><th>节点</th><th>什么时候</th><th>要谁在场</th><th>评审什么</th><th>过不了怎么办</th></tr></thead>
+          <tbody id="mentorRows"></tbody>
+        </table></div>
+        <div class="callout">
+          <span class="ct">找人原则</span>
+          评审人不能是天天跟你一起干活的人 —— 他们已经被你的思路同化了。找没听过项目的人，他们第一次听就听不懂的地方，就是评委听不懂的地方。
+        </div>
+      </div>
+
+      <div class="sec">
+        <div class="sec-head">
+          <span class="sec-num">05.2</span>
+          <h2 class="sec-title">高频答辩题</h2>
+          <span class="sec-note" id="qaSrc"></span>
+        </div>
+        <div id="qaList"></div>
+      </div>
+
+      <div class="sec">
+        <div class="sec-head">
+          <span class="sec-num">05.3</span>
+          <h2 class="sec-title">答辩准备清单</h2>
+        </div>
+        <div class="next-list">
+          <div class="next-item"><span class="n">01</span><div><div class="t">把所有结论倒着问一遍：「这个数字怎么来的」</div><div class="h">评委的第一问几乎总是数据来源。答不上来说明材料里有你没算过的数</div></div></div>
+          <div class="next-item"><span class="n">02</span><div><div class="t">准备 20–30 条 Q&amp;A，每条 10 秒内说完</div><div class="h">结构固定：结论 → 依据 → 数据。不要现场组织语言</div></div></div>
+          <div class="next-item"><span class="n">03</span><div><div class="t">按决赛时长计时演练至少 3 次</div><div class="h">录像回看，砍掉口头禅和超时段落；每次都要有人专门掐表</div></div></div>
+          <div class="next-item"><span class="n">04</span><div><div class="t">设定一个「不懂就不答」的统一口径</div><div class="h">答不上就说「这块我们没做，下一阶段会补」；硬编一个答案，后面全崩</div></div></div>
+        </div>
+      </div>
+
+      <div class="foot"><span>竞赛指导台 · 评审与答疑</span><span>口径随赛事切换</span></div>
+    </section>
+
+    <!-- ============ 论文写作台 ============ -->
+    <section class="view" id="view-paper">
+      <div class="home-head">
+        <div>
+          <h1>论文写作台</h1>
+          <p>五类论文的章节骨架、逐章要点、句式模板、降重与查重、排版与引用、学术翻译，全部可查可勾</p>
+        </div>
+      </div>
+      <div class="seg" id="paperSeg"></div>
+      <div id="paperBody"></div>
+      <div class="foot"><span>竞赛指导台 · 论文写作台</span><span>引用格式：GB/T 7714—2015 · 排版以本校模板为准</span></div>
+    </section>
+
+  </main>
+</div>
+
+<script>window.__DATA__ = /*__DATA__*/;</script>
+<script>/*__API__*/</script>
+<script>/*__APP__*/</script>
+</body>
+</html>

@@ -1,0 +1,793 @@
+# -*- coding: utf-8 -*-
+"""选题级落地方案 · 第一周开工单 + 学习路线
+
+三层合成：技术栈模板（本文件） × 选题变量（topics_all.json 打标签） × 赛事节奏（comps.py）
+
+课程对位严格按《课程对位标准》写：课程原名 · 阶段 · 章小节 小节名
+只允许引用真实存在的章节 —— 已逐条对过
+  working/执行方案/xzt_课程对位/java-camp_课程大纲.md（233 章）
+  working/执行方案/xzt_课程对位/genai-app-v2_课程大纲.md（28 章）
+"""
+
+# ---------------------------------------------------------------- 软件/环境库
+# must=True 必装；False 按需
+TOOLS = {
+    'jdk':      dict(name='JDK', ver='17 LTS', why='Spring Boot 3 的最低要求，别用 8', fb='内网装不上就下 zip 包解压配 JAVA_HOME', must=True),
+    'maven':    dict(name='Maven', ver='3.9.x', why='依赖管理，项目骨架靠它', fb='settings.xml 配阿里云镜像，拉包从 20 分钟降到 1 分钟', must=True),
+    'idea':     dict(name='IntelliJ IDEA', ver='Community', why='主 IDE，社区版够用', fb='学生认证可申 Ultimate（免费），有 Spring 专属提示', must=True),
+    'git':      dict(name='Git', ver='2.43+', why='版本控制，代码别用 U 盘传', fb='配 SSH key，省得每次输密码', must=True),
+    'mysql':    dict(name='MySQL', ver='8.0', why='业务库，表结构从这里开始', fb='用 zip 免安装版，别装成 Windows 服务（卸不干净）', must=True),
+    'dbeaver':  dict(name='DBeaver CE', ver='最新', why='连库看数据、导出结果截图', fb='Navicat 是收费的，用破解版答辩被问到很尴尬', must=True),
+    'docker':   dict(name='Docker Desktop', ver='4.29+', why='一键起中间件，省掉手工装 Nacos/RocketMQ', fb='Win 家庭版先开 WSL2；M 芯片注意拉 arm64 镜像', must=True),
+    'redis':    dict(name='Redis', ver='7.2（容器）', why='缓存与会话，压测时是加分项', fb='容器起，端口 6379，别装桌面版', must=False),
+    'rocketmq': dict(name='RocketMQ', ver='5.1（容器）', why='异步消息，故障事件派单靠它', fb='⛔ 红线：不许换 Kafka / RabbitMQ；namesrv + broker 两个容器', must=True),
+    'nacos':    dict(name='Nacos', ver='2.3（容器）', why='注册中心 + 配置中心', fb='单机模式加 -e MODE=standalone，否则起不来', must=True),
+    'postman':  dict(name='Apifox / Postman', ver='最新', why='接口自测，答辩演示全靠它', fb='导出的集合存进仓库，换电脑也能跑', must=True),
+    'node':     dict(name='Node.js', ver='20 LTS', why='前端构建', fb='别装 22，Vite 部分插件会报错', must=True),
+    'pnpm':     dict(name='pnpm', ver='9.x', why='装依赖快、占空间小', fb='用 npm 也行，但别两个混用', must=False),
+    'python':   dict(name='Python', ver='3.11', why='脚本、数据处理、模型推理', fb='用 Miniconda 管环境，完整版 Anaconda 太大', must=True),
+    'conda':    dict(name='Miniconda', ver='最新', why='环境隔离，避免装崩系统 Python', fb='每个项目一个 env，requirements.txt 进仓库', must=True),
+    'vscode':   dict(name='VS Code', ver='最新', why='写 Python、改配置、看日志', fb='装 Python + Jupyter 插件就够', must=True),
+    'ollama':   dict(name='Ollama', ver='最新', why='本地跑开源模型，断网也能演示', fb='显存不够就拉 7B 以下；⛔ 别用 vLLM 起服务，统一 Ollama', must=False),
+    'langchain':dict(name='LangChain / LangGraph', ver='最新', why='Agent 编排，别从零手写状态机', fb='版本变动大，锁 requirements.txt 里的版本', must=False),
+    'chroma':   dict(name='Chroma', ver='最新', why='向量库，RAG 检索用', fb='数据量小于 1 万条时它比 Milvus 省事得多', must=False),
+    'jupyter':  dict(name='Jupyter Lab', ver='最新', why='数据分析过程留痕，附录要用', fb='conda 里装，别全局 pip', must=False),
+    'echarts':  dict(name='ECharts', ver='5.x', why='图表与看板，评委看图比看表快', fb='官方示例改数据，别从零画', must=False),
+    'opencv':   dict(name='OpenCV', ver='4.x', why='图像预处理与视觉任务', fb='pip 装 opencv-python 就够，别编译源码', must=False),
+    'labelimg': dict(name='LabelImg / Label Studio', ver='最新', why='标注数据，模型效果一半靠标注', fb='标注规范先写文档，不然三个人标出三套标准', must=False),
+    'torch':    dict(name='PyTorch', ver='2.x', why='训练与推理', fb='没独显就走 CPU 小模型或调 API，别硬训大模型', must=False),
+    'arduino':  dict(name='Arduino IDE / PlatformIO', ver='最新', why='单片机开发与烧录', fb='驱动装不上换 CH340 老版本驱动', must=False),
+    'mqtt':     dict(name='EMQX', ver='5.x（容器）', why='设备接入用 MQTT，业务消息仍走 RocketMQ', fb='⚠️ 边界：MQTT 只做设备接入，不用它替代业务消息队列', must=False),
+    'figma':    dict(name='Figma', ver='网页版', why='界面与原型，评委看第一眼就是它', fb='国内网络不稳就用即时设计 / MasterGo', must=False),
+    'adobe':    dict(name='PS / AI / PR / AE', ver='CC', why='视觉素材与短片', fb='学校机房通常有正版；个人用达芬奇替代剪辑（免费）', must=False),
+    'blender':  dict(name='Blender', ver='4.x', why='3D 场景与动画', fb='免费，渲染慢就降采样', must=False),
+    'burp':     dict(name='Burp Suite CE', ver='最新', why='Web 安全测试抓包改包', fb='社区版够用；配浏览器代理证书', must=False),
+    'wireshark':dict(name='Wireshark', ver='最新', why='抓包看协议，写报告要用截图', fb='只抓自己环境的流量，别碰校园网', must=False),
+    'burpnote': dict(name='靶场（DVWA / Pikachu）', ver='容器', why='漏洞复现要有环境，不能只讲理论', fb='本地容器起，别打校外站点', must=False),
+}
+
+# ---------------------------------------------------------------- 技术栈模板
+# days: D1–D7 日级；route: 学习路线三段（按需补，不是系统课表）
+
+STACKS = {
+
+# ============================================================ 微服务后端
+'microsvc': dict(
+    name='微服务后端',
+    fit='软件工程微服务 · 高并发系统 · 数据中台 · 设备派单 · 管理后台类选题',
+    hours='第一周约 18–22 小时（装环境占一半）',
+    tools=['jdk', 'maven', 'idea', 'git', 'mysql', 'dbeaver', 'docker', 'redis',
+           'rocketmq', 'nacos', 'postman', 'node', 'pnpm'],
+    days=[
+        dict(d='D1', title='装环境，跑通第一个空服务',
+             todo=['装 JDK 17、Maven 3.9、IDEA 社区版、Git，全部配进 PATH 并验证版本',
+                   'IDEA 用 Spring Initializr 建工程，勾 Web + Lombok，Java 选 17',
+                   '写一个 /health 接口返回 {"status":"ok"}',
+                   '推到 Gitee 私库，README 写清怎么克隆、怎么启动'],
+             out='浏览器访问 localhost:8080/health 返回 ok ＋ 仓库链接',
+             ref=['AI全栈开发工程师 · 阶段3 · 12.2 Spring Initializr',
+                  'AI全栈开发工程师 · 阶段3 · 12.4 第一个 Boot 应用'],
+             trap='端口被占用就改 server.port；Maven 拉包慢换阿里云镜像'),
+        dict(d='D2', title='建库建表，灌一批假数据',
+             todo=['装 MySQL 8（zip 版）＋ DBeaver，建库和两张核心表',
+                   '按业务画字段：主键、状态、时间戳、外键关系写清楚',
+                   '灌 20 条假数据，把「列表查询」和「按条件筛选」两条 SQL 跑通'],
+             out='DBeaver 里 SELECT 出结果的截图 ＋ 建表 SQL 进仓库',
+             ref=['AI全栈开发工程师 · 阶段1 · 27.2 MySQL安装与配置',
+                  'AI全栈开发工程师 · 阶段1 · 28.3 数据表操作',
+                  'AI全栈开发工程师 · 阶段1 · 30.3 分组查询'],
+             trap='字符集统一 utf8mb4，不然后面中文全变问号'),
+        dict(d='D3', title='Docker 起三个中间件',
+             todo=['装 Docker Desktop，开国内镜像加速',
+                   '起 Redis（6379）、RocketMQ（namesrv + broker）、Nacos（8848）',
+                   'Nacos 控制台能登录；用控制台或客户端发一条测试消息'],
+             out='三个端口都能访问的截图 ＋ 一条消息发送成功的日志',
+             ref=['AI全栈开发工程师 · 阶段4 · 6.1 Docker 概念与安装',
+                  'AI全栈开发工程师 · 阶段4 · 10.1 Redis 概述与安装',
+                  'AI全栈开发工程师 · 阶段4 · 15.2 生产者与消费者',
+                  'AI全栈开发工程师 · 阶段4 · 25.2 Nacos 安装部署'],
+             trap='Docker 拉不动换国内 registry；Nacos 不加 standalone 会一直重启'),
+        dict(d='D4', title='两个服务注册到注册中心并互调',
+             todo=['建两个模块（如 device-service、dispatch-service），各自是独立 Boot 应用',
+                   '都注册进 Nacos，用 OpenFeign 从一个服务调另一个的接口',
+                   '调通后把两个服务都停掉重启一次，确认注册与发现能自愈'],
+             out='Nacos 服务列表里出现 2 个实例 ＋ 跨服务调用成功的返回体',
+             ref=['AI全栈开发工程师 · 阶段4 · 25.3 服务注册与发现',
+                  'AI全栈开发工程师 · 阶段4 · 26.2 OpenFeign 声明式调用'],
+             trap='包名不扫描不到 Bean，启动类要放在父包；Feign 接口加 @FeignClient(name=服务名)'),
+        dict(d='D5', title='打通一条从页面到数据库的真实链路',
+             todo=['装 Node 20 + pnpm，用 Vite 起 Vue3 工程，装 Element Plus',
+                   '做一个设备列表页，用 Axios 调后端接口',
+                   '中间加一层网关（或先直连），把 CORS 跨域处理掉'],
+             out='浏览器里能点出真实数据库里的数据，录 15 秒屏',
+             ref=['AI全栈开发工程师 · 阶段2 · 15.1 Vue3 概述与 Vite 搭建',
+                  'AI全栈开发工程师 · 阶段2 · 18.1 Axios 安装与封装',
+                  'AI全栈开发工程师 · 阶段3 · 16.1 整合 MyBatis'],
+             trap='跨域先在后端加 @CrossOrigin 应急，正式方案走网关统一处理'),
+        dict(d='D6', title='补卡点，写一份别人能照做的环境文档',
+             todo=['把这一周卡最久的那一个问题单独搞懂，写进 docs/踩坑.md',
+                   '写 docs/env.md：装什么、什么版本、什么顺序、常见报错怎么解',
+                   '让一个没参与的队友照文档在自己电脑上装一遍，卡住的地方补进去'],
+             out='队友能照文档装成功（这是唯一验收标准）',
+             ref=['按 D1–D5 实际卡住的位置回看对应章节'],
+             trap='文档写「装 JDK」没用，要写清版本、下载来源、验证命令'),
+        dict(d='D7', title='例会验收：现场跑，不认录屏',
+             todo=['每人 5 分钟，现场从启动服务开始演示到页面出数据',
+                   '定下周分工：谁做设备模块、谁做派单模块、谁做前端',
+                   '把下周要过的门禁日期写进日历'],
+             out='一次完整现场演示 ＋ 下周分工表（署名到人）',
+             ref=[],
+             trap='录屏能剪，现场跑不通就是没跑通 —— 这一条要提前讲清楚'),
+    ],
+    route=[
+        dict(phase='第一周 · 环境与骨架', weeks='W1',
+             goal='能独立起服务、连库、注册到注册中心',
+             must=['Spring Boot 起服务｜AI全栈开发工程师 · 阶段3 · 12.4 第一个 Boot 应用',
+                   'MySQL 装与建表｜AI全栈开发工程师 · 阶段1 · 27.2 MySQL安装与配置',
+                   'Docker 基础｜AI全栈开发工程师 · 阶段4 · 6.1 Docker 概念与安装',
+                   'Nacos 部署与注册｜AI全栈开发工程师 · 阶段4 · 25.2 Nacos 安装部署'],
+             skip='阶段1 的 HTML/CSS 全套（前端用 Vue，不手写页面）、27.3 Adminer（用 DBeaver 替代）',
+             out='D7 能在自己电脑上从 0 起两个服务并互调成功'),
+        dict(phase='W2–W4 · 主链路跑通', weeks='W2–W4',
+             goal='一条完整业务链路能跑，数据落库，异常能兜住',
+             must=['数据访问 MyBatis｜AI全栈开发工程师 · 阶段3 · 16.1 整合 MyBatis',
+                   '服务注册与发现｜AI全栈开发工程师 · 阶段4 · 25.3 服务注册与发现',
+                   'OpenFeign 调用｜AI全栈开发工程师 · 阶段4 · 26.2 OpenFeign 声明式调用',
+                   'RocketMQ 生产消费｜AI全栈开发工程师 · 阶段4 · 15.2 生产者与消费者',
+                   '网关路由与跨域｜AI全栈开发工程师 · 阶段4 · 27.2 路由配置'],
+             skip='92–95 Spring Security 全套（校内项目先不做权限，够用就行）、88–91 MySQL 进阶（调优留到压测前）',
+             out='D5 那条链路加上异步消息，能演示「触发 → 入队 → 消费 → 状态变更」'),
+        dict(phase='W5–W8 · 加分项', weeks='W5–W8',
+             goal='让评委看到工程能力，而不是只会写 CRUD',
+             must=['Sentinel 流控熔断｜AI全栈开发工程师 · 阶段4 · 28.2 流控规则',
+                   'Seata 分布式事务｜AI全栈开发工程师 · 阶段4 · 29.4 AT 模式（重点）',
+                   'Docker Compose 一键起｜AI全栈开发工程师 · 阶段4 · 8.1 Compose 编排',
+                   'AI 批量生成微服务｜AI全栈开发工程师 · 阶段4 · 31 AI 批量生成微服务'],
+             skip='JVM 调优、K8s 部署、Spring 源码精讲 —— 比赛不查这些，有时间再补',
+             out='一条 compose up 起全栈 ＋ 一份压测报告（QPS / P99 / 错误率）'),
+    ],
+),
+
+# ============================================================ AI 应用 / 智能体
+'ai_agent': dict(
+    name='AI 应用 / 智能体',
+    fit='AI 智能体 · RAG 问答 · 多智能体协同 · AI 辅助教学 · 内容生成类选题',
+    hours='第一周约 16–20 小时（模型与向量库调试最耗时间）',
+    tools=['python', 'conda', 'vscode', 'git', 'ollama', 'langchain', 'chroma', 'jupyter'],
+    days=[
+        dict(d='D1', title='装 Python 环境，跑通一个最小服务',
+             todo=['装 Miniconda，建一个专用 env，锁 Python 3.11',
+                   '装 FastAPI + uvicorn，写一个 /health 和一个 /echo 接口',
+                   '把依赖导出 requirements.txt 进仓库'],
+             out='localhost:8000/docs 能打开并成功调一次接口',
+             ref=['AI Agent全栈应用 · 阶段1 · 3.1 Python项目与依赖管理',
+                  'AI Agent全栈应用 · 阶段1 · 3.6 FastAPI快速入门'],
+             trap='别用系统自带 Python 直接 pip install，装崩了很难回滚'),
+        dict(d='D2', title='接上模型：本地一个、云端一个',
+             todo=['装 Ollama，拉一个 7B 级别的开源模型，跑通对话',
+                   '申请一个国产大模型 API key（通义/智谱/DeepSeek 任一），用代码调通',
+                   '两条路径都封装成同一个函数，后面可切换'],
+             out='同一个函数分别调本地模型和云端模型都能返回结果',
+             ref=['AI Agent全栈应用 · 阶段1 · 2 大模型原理、能力边界与模型工程',
+                  'AI全栈开发工程师 · 阶段6 · 17.3 跑一个开源模型'],
+             trap='显存不够就换更小的模型；⛔ 统一用 Ollama 起本地服务，不要引入 vLLM'),
+        dict(d='D3', title='做第一个能调工具的 Agent',
+             todo=['先跑通一个低代码工作流（Dify），看清 Agent 的输入输出结构',
+                   '再手写一个最简 Agent Runtime：接收任务 → 选工具 → 执行 → 汇总',
+                   '至少接 2 个工具（如查库、算数、读文件）'],
+             out='给一句自然语言任务，Agent 能自己选对工具并返回结果',
+             ref=['AI Agent全栈应用 · 阶段1 · 5.4 Workflow与Chatflow编排',
+                  'AI Agent全栈应用 · 阶段1 · 8 从零手写Agent Runtime',
+                  'AI Agent全栈应用 · 阶段1 · 7 Tool Calling协议与工具开发'],
+             trap='工具描述写不清模型就选错工具，每个工具的 description 要写「什么时候用」'),
+        dict(d='D4', title='搭 RAG：文档 → 切分 → 向量 → 带引用回答',
+             todo=['准备 20–50 份真实文档（课程大纲、制度文件、论文都要真实来源）',
+                   '做解析、切分（含元数据）、embedding 入 Chroma',
+                   '检索后拼进 Prompt，回答必须带出处；答不出来要能说「没找到」'],
+             out='问 5 个问题，4 个能答对且给出处，1 个能正确拒答',
+             ref=['AI Agent全栈应用 · 阶段1 · 12.2 多类型文档解析',
+                  'AI Agent全栈应用 · 阶段1 · 12.4 Embedding与向量数据库',
+                  'AI Agent全栈应用 · 阶段1 · 12.5 检索、生成与引用'],
+             trap='切分粒度是效果第一杀手：先按标题切，再按长度兜底'),
+        dict(d='D5', title='接一个 MCP Server，把能力外置',
+             todo=['按 MCP 协议写一个自己的 Server，暴露 2–3 个工具',
+                   '客户端接进来，Agent 通过 MCP 调用',
+                   '加一层输入输出校验，把明显越界的请求拦住'],
+             out='Agent 通过 MCP 调到你写的工具，日志能看到 JSON-RPC 往返',
+             ref=['AI Agent全栈应用 · 阶段1 · 15.4 MCP Server源码实现',
+                  'AI Agent全栈应用 · 阶段1 · 15.6 MCP认证与安全'],
+             trap='传输方式选错（stdio vs HTTP）会一直连不上，先按文档示例跑通再改'),
+        dict(d='D6', title='补卡点 ＋ 建评测集',
+             todo=['建一个 20 条的小评测集：问题 + 期望答案 + 判定标准',
+                   '跑一遍，把答错的记下来，逐个改（改 prompt / 改切分 / 换模型）',
+                   '写 docs/env.md 与 docs/eval.md'],
+             out='一份能重复跑的评测结果表（改完能看到提升）',
+             ref=['AI Agent全栈应用 · 阶段1 · 21.1 Agent评测体系',
+                  'AI Agent全栈应用 · 阶段1 · 21.2 RAG和生成评测'],
+             trap='没有评测集就没法证明「比昨天好」，答辩现场会被追问'),
+        dict(d='D7', title='例会验收：现场提问，不许提前排练',
+             todo=['队友随机问 5 个问题，现场看答得准不准、出处在不在',
+                   '定下周分工：谁做检索优化、谁做工具扩展、谁做前端',
+                   '把评测集扩充到 50 条，作为下周验收标准'],
+             out='现场 5 问 4 对的记录 ＋ 下周分工表',
+             ref=[],
+             trap='只演示排练过的问题，评委换一个问法就露馅'),
+    ],
+    route=[
+        dict(phase='第一周 · 环境与最小闭环', weeks='W1',
+             goal='能跑通「调用模型 → 选工具 → 返回结果」的最小闭环',
+             must=['Python 项目与依赖｜AI Agent全栈应用 · 阶段1 · 3.1 Python项目与依赖管理',
+                   'FastAPI 起服务｜AI Agent全栈应用 · 阶段1 · 3.6 FastAPI快速入门',
+                   '工作流编排｜AI Agent全栈应用 · 阶段1 · 5.4 Workflow与Chatflow编排',
+                   '手写 Agent Runtime｜AI Agent全栈应用 · 阶段1 · 8 从零手写Agent Runtime'],
+             skip='阶段1 · 5–6 Python 语法基础（有基础直接跳）、AI全栈开发工程师 阶段6 的 5–6 章（同内容，别重复学）',
+             out='D7 能在自己电脑上起服务并向 Agent 提一个任务拿到结果'),
+        dict(phase='W2–W4 · RAG 与工具链', weeks='W2–W4',
+             goal='检索准、工具稳、答得出来也答得准',
+             must=['文档解析与切分｜AI Agent全栈应用 · 阶段1 · 12.2 多类型文档解析',
+                   'Embedding 与向量库｜AI Agent全栈应用 · 阶段1 · 12.4 Embedding与向量数据库',
+                   '检索生成与引用｜AI Agent全栈应用 · 阶段1 · 12.5 检索、生成与引用',
+                   'LangGraph 可靠工作流｜AI Agent全栈应用 · 阶段1 · 10 LangGraph、Agent设计模式与可靠工作流',
+                   'MCP Server 开发｜AI Agent全栈应用 · 阶段1 · 15.4 MCP Server源码实现'],
+             skip='1–2 章大模型原理（知道能力边界即可，别停在理论上）、4 章 Vibe Coding（用起来就行）',
+             out='50 条评测集准确率 ≥70%，错误能被归因到「检索没召回」还是「生成答偏」'),
+        dict(phase='W5–W8 · 多智能体与可交付', weeks='W5–W8',
+             goal='从「能跑」到「敢给别人用」',
+             must=['多 Agent 协作｜AI Agent全栈应用 · 阶段1 · 16 Agent Skills、多Agent与A2A',
+                   'Agent Eval｜AI Agent全栈应用 · 阶段1 · 21.1 Agent评测体系',
+                   '安全与 Guardrails｜AI Agent全栈应用 · 阶段1 · 22.5 输入输出Guardrails',
+                   '部署与运维｜AI Agent全栈应用 · 阶段1 · 23 Agent部署、规模化与线上运维'],
+             skip='32–34 大模型微调 / RLHF / Agentic RL —— 竞赛作品基本用不上，投入产出比最低',
+             out='一份压力与成本表（每次问答花费多少 token、多少钱）＋ 一份失败案例清单'),
+    ],
+),
+
+# ============================================================ 数据与检索
+'data': dict(
+    name='数据与检索 / 大数据',
+    fit='数据中台 · 舆情监测 · 知识图谱 · 检索系统 · 数据可视化类选题',
+    hours='第一周约 15–18 小时（数据源对接最不可控）',
+    tools=['python', 'conda', 'jupyter', 'mysql', 'dbeaver', 'vscode', 'git', 'echarts'],
+    days=[
+        dict(d='D1', title='把数据读进来看一眼',
+             todo=['装 Miniconda + Jupyter，建项目 env',
+                   '把手上能拿到的数据（CSV / Excel / 接口）读进 DataFrame',
+                   '统计行列数、字段类型、缺失情况，先出一张「数据体检表」'],
+             out='Jupyter 里 df.info() + 缺失率表的截图',
+             ref=['AI Agent全栈应用 · 阶段1 · 18.2 数据读取和质量检查'],
+             trap='别急着建模，先确认字段含义 —— 字段理解错，后面全白做'),
+        dict(d='D2', title='数据采集跑通并留证',
+             todo=['定 2–3 个真实数据源（公开数据 + 自采），写清采集频率与字段',
+                   '写脚本采集，落成 CSV 或入库，每次采集都记日志（时间、条数、失败原因）',
+                   '跑一次完整采集，记录耗时'],
+             out='一条能重跑的采集脚本 ＋ 一份采集日志',
+             ref=['AI全栈开发工程师 · 阶段1 · 30.2 条件查询',
+                  'AI Agent全栈应用 · 阶段1 · 18.4 受控代码执行'],
+             trap='⚠️ 采集要合法：只用公开数据或授权数据，别爬需登录的站'),
+        dict(d='D3', title='清洗与质检，把脏数据讲清楚',
+             todo=['处理缺失（删 / 填 / 标记）、异常值、重复记录',
+                   '写清洗前后对照：删了多少条、为什么删、依据是什么',
+                   '把清洗脚本参数化，保证同一份原始数据能复现同一份干净数据'],
+             out='清洗前后条数对照表 ＋ 可复现的清洗脚本',
+             ref=['AI Agent全栈应用 · 阶段1 · 18.2 数据读取和质量检查'],
+             trap='删数据不写理由，附录一被问就答不上来；每次删都记一条'),
+        dict(d='D4', title='做分析，每张图挂一句结论',
+             todo=['先做描述统计（分布、趋势、分组对比）',
+                   '再做一层推断或相关分析，写清方法与前提假设',
+                   '每张图表配一句结论 + 数据出处'],
+             out='3–5 张图表，每张都有结论句和口径说明',
+             ref=['AI Agent全栈应用 · 阶段1 · 18.3 分析计划生成',
+                  'AI Agent全栈应用 · 阶段1 · 18.5 图表和数据洞察'],
+             trap='相关不等于因果，结论里别写「导致」，写「与…同向变化」'),
+        dict(d='D5', title='做成能点开的看板',
+             todo=['用 ECharts 做一页看板，接清洗后的数据',
+                   '加筛选（时间、类别），改一个筛选图要跟着变',
+                   '部署到本地或内网，确保断网也能开'],
+             out='一个能在浏览器打开、能筛能点的看板链接或录屏',
+             ref=['AI Agent全栈应用 · 阶段1 · 18.6 结果验证与报告'],
+             trap='图表配色别超过 5 种，评委看不懂等于没做'),
+        dict(d='D6', title='补卡点 ＋ 写数据字典',
+             todo=['整理数据字典：字段名、含义、取值范围、来源、更新时间',
+                   '把采集 → 清洗 → 分析 → 看板画成一条链路图',
+                   '写 docs/data.md，别人能照着把数据重建一遍'],
+             out='数据字典 ＋ 链路图，进仓库',
+             ref=[],
+             trap='数据字典缺了，「可复现」这一项直接判死'),
+        dict(d='D7', title='例会验收：数据能不能撑起结论',
+             todo=['现场从看板倒推：这个结论的数据从哪来、经过哪些处理',
+                   '队友扮评委挑一个数字，看能不能当场说清口径',
+                   '定下周分工：谁扩数据源、谁做深分析、谁写报告'],
+             out='一次口径追问演练记录 ＋ 分工表',
+             ref=[],
+             trap='结论比数据大是最常见的扣分点，宁可少说也不要说过头'),
+    ],
+    route=[
+        dict(phase='第一周 · 数据通路', weeks='W1',
+             goal='数据能从源到看板跑通一遍，且能复现',
+             must=['数据读取与质量检查｜AI Agent全栈应用 · 阶段1 · 18.2 数据读取和质量检查',
+                   '分析计划生成｜AI Agent全栈应用 · 阶段1 · 18.3 分析计划生成',
+                   '图表与洞察｜AI Agent全栈应用 · 阶段1 · 18.5 图表和数据洞察',
+                   'SQL 基础查询｜AI全栈开发工程师 · 阶段1 · 30.2 条件查询'],
+             skip='本文档不覆盖 Python 语法与 pandas 基础 —— 平台课程未单独开设数据轨，需按下方自学清单补',
+             out='D7 能让别人照着文档把数据重建一遍'),
+        dict(phase='W2–W4 · 挖出可信结论', weeks='W2–W4',
+             goal='结论站得住，别人挑不出统计错误',
+             must=['分析计划与变量口径｜AI Agent全栈应用 · 阶段1 · 18.3 分析计划生成',
+                   '结果验证与报告｜AI Agent全栈应用 · 阶段1 · 18.6 结果验证与报告',
+                   '受控代码执行（可复现）｜AI Agent全栈应用 · 阶段1 · 18.4 受控代码执行'],
+             skip='大数据组件（Hadoop / Spark）—— 校级作品的数据量根本用不上，写了反而像堆技术',
+             out='一份方法说明，写清样本、假设、检验方法与局限'),
+        dict(phase='自学清单（课程未覆盖部分）', weeks='按需',
+             goal='补齐平台课程没有的数据基础',
+             must=['pandas 10 分钟入门（官方文档，跑一遍即可）',
+                   'SQL 五类查询：筛选 / 分组 / 连接 / 子查询 / 窗口函数',
+                   'ECharts 官方示例改数据（改 3 个图就够用）',
+                   '统计前提：正态性、显著性、相关与因果的区别'],
+             skip='机器学习建模 —— 除非选题本身要求，否则数据类作品靠「说得清」赢，不靠模型复杂度',
+             out='能独立完成「取数 → 清洗 → 出图 → 解释」四步'),
+    ],
+),
+
+# ============================================================ 物联网 / 嵌入式
+'iot': dict(
+    name='物联网 / 嵌入式',
+    fit='设备巡检 · 智慧农业 · 环境监测 · 边缘推理 · 硬件+软件一体类选题',
+    hours='第一周约 18–24 小时（硬件到货与接线不可控，务必提前买）',
+    tools=['arduino', 'mqtt', 'python', 'vscode', 'git', 'mysql', 'docker', 'echarts'],
+    days=[
+        dict(d='D1', title='硬件到货清点 ＋ 打通开发环境',
+             todo=['按清单核对硬件（板子、传感器、杜邦线、电源），缺件当天补单',
+                   '装 Arduino IDE / PlatformIO，装 CH340 或 CP210x 驱动',
+                   '烧一个点灯程序，确认板子、线、驱动、IDE 四者都对'],
+             out='板载 LED 按程序闪烁的视频 ＋ 硬件清单表（含型号与单价）',
+             ref=[],
+             trap='点灯不通先查驱动和 COM 口，别怀疑代码 —— 90% 是驱动问题'),
+        dict(d='D2', title='传感器接线，把数据读出来',
+             todo=['按接线图接 1–2 个核心传感器（温湿度、光照、电流任一）',
+                   '写程序读原始值，串口按秒打印',
+                   '标定一次：用已知条件（手捂、遮光）验证数值方向对不对'],
+             out='串口监视器连续打印数据的录屏 ＋ 一张接线图',
+             ref=[],
+             trap='接线前先断电；模拟量传感器注意分压，直接接 5V 会烧'),
+        dict(d='D3', title='数据上云：设备 → 消息 → 服务端',
+             todo=['Docker 起 EMQX（MQTT 用于设备接入）',
+                   '设备用 MQTT 发布数据到指定 topic，QoS 与心跳先按默认',
+                   '服务端订阅并打印，确认端到端能收到'],
+             out='服务端日志里出现设备上报的真实数据（带时间戳）',
+             ref=['AI全栈开发工程师 · 阶段4 · 6.1 Docker 概念与安装'],
+             trap='⚠️ 边界：MQTT 只负责设备接入，业务侧异步消息仍走 RocketMQ，不要用 EMQX 替代'),
+        dict(d='D4', title='入库 ＋ 告警规则',
+             todo=['建表存设备数据（设备号、指标、值、采集时间）',
+                   '写订阅端落库，跑 30 分钟看有没有丢数',
+                   '定 2 条告警规则（阈值超限、离线超时），触发写告警表'],
+             out='库里 30 分钟以上的连续数据 ＋ 一次手动触发的告警记录',
+             ref=['AI全栈开发工程师 · 阶段1 · 28.3 数据表操作'],
+             trap='设备时间与服务器时间不同步，统一用服务端接收时间落库'),
+        dict(d='D5', title='前端展示 ＋ 现场演示方案',
+             todo=['用 ECharts 画实时曲线与当前值卡片',
+                   '做一次「拔线 / 遮挡」演示：页面能在 10 秒内变红告警',
+                   '准备一套离线演示方案（不依赖校园网）'],
+             out='页面能实时刷新 ＋ 拔线告警成功的录屏',
+             ref=[],
+             trap='比赛现场常常没网，热点 + 本地服务必须提前演练'),
+        dict(d='D6', title='补卡点 ＋ 工程文档',
+             todo=['画系统架构图（设备 → 网关 → 服务 → 库 → 前端）',
+                   '写接线图、BOM 表（型号 / 数量 / 单价 / 采购渠道）',
+                   '写 docs/hardware.md：别人能照着复现硬件'],
+             out='架构图 ＋ BOM 表 ＋ 接线图，三份齐',
+             ref=[],
+             trap='BOM 表要写真实采购价，答辩问成本时答不上来很减分'),
+        dict(d='D7', title='例会验收：现场插拔，跑真数据',
+             todo=['现场断电重启一次，看系统能否自动恢复',
+                   '现场拔一根线，看告警是否触发',
+                   '定下周分工：谁做硬件稳定性、谁做后端、谁做前端'],
+             out='一次断电恢复 + 一次故障注入的现场记录',
+             ref=[],
+             trap='只在实验室稳定不算稳定，要记录连续运行 24 小时的结果'),
+    ],
+    route=[
+        dict(phase='第一周 · 硬件通路', weeks='W1',
+             goal='设备能读数、能上云、能入库、能展示',
+             must=['C 语言基础（变量 / 循环 / 函数）—— 板子编程的最低门槛',
+                   'GPIO 与串口通信 —— 会看点灯与打印，就能接大部分传感器',
+                   'MQTT 协议（发布 / 订阅 / QoS）—— 设备上云的标准做法',
+                   'MySQL 建表与插入｜AI全栈开发工程师 · 阶段1 · 28.3 数据表操作'],
+             skip='⚠️ 平台课程未覆盖嵌入式方向，本节为自学清单，无对位章节',
+             out='D7 能做到「拔线 10 秒内页面报警」'),
+        dict(phase='W2–W4 · 稳定性与联动', weeks='W2–W4',
+             goal='不是演示能跑，而是连续跑一周不出事',
+             must=['看门狗与断线重连（板子挂了要能自恢复）',
+                   '数据补偿（网络断了本地缓存，恢复后补传）',
+                   'Docker 基础｜AI全栈开发工程师 · 阶段4 · 6.1 Docker 概念与安装',
+                   '后端接口开发｜AI全栈开发工程师 · 阶段3 · 12.4 第一个 Boot 应用'],
+             skip='RTOS 与底层驱动开发 —— 校级作品用 Arduino 框架足够，上 RTOS 投入产出比低',
+             out='一份 7×24 小时运行记录（掉线次数、恢复耗时）'),
+        dict(phase='W5–W8 · 加分项', weeks='W5–W8',
+             goal='让评委看到「工程化」而不是「接了个传感器」',
+             must=['边缘侧轻量推理（模型量化到板子或就近网关）',
+                   '设备批量管理与 OTA 升级（哪怕是脚本模拟）',
+                   '能耗与成本核算（一块板子跑一天多少电）'],
+             skip='不要为了炫技上区块链 / 数字孪生，讲不清为什么用反而扣分',
+             out='一份稳定性 + 成本 + 效果的三角对照表'),
+    ],
+),
+
+# ============================================================ 网络与安全
+'sec': dict(
+    name='网络与安全',
+    fit='数据授权共享 · 隐私保护 · 安全检测 · 合规风控 · 攻防演练类选题',
+    hours='第一周约 15–20 小时（靶场与环境配置占大头）',
+    tools=['python', 'vscode', 'git', 'docker', 'burp', 'wireshark', 'burpnote', 'mysql'],
+    days=[
+        dict(d='D1', title='装环境 ＋ 起一个本地靶场',
+             todo=['装 Python、Burp Suite CE、Wireshark',
+                   'Docker 起 DVWA 或 Pikachu 靶场，浏览器能打开',
+                   '配好浏览器代理与证书，能抓到 HTTPS 明文'],
+             out='抓包工具里能看到一条完整的登录请求（含参数）',
+             ref=['AI全栈开发工程师 · 阶段4 · 6.1 Docker 概念与安装'],
+             trap='⛔ 只在自己环境和授权靶场操作，绝不碰校外任何站点'),
+        dict(d='D2', title='复现 3 个典型漏洞，每个留 PoC',
+             todo=['选 3 个与选题相关的漏洞（注入 / 越权 / 敏感信息泄露等）',
+                   '每个漏洞：复现步骤、请求包、响应差异、截图',
+                   '写清「如果没防住，会造成什么后果」'],
+             out='3 份 PoC 记录（步骤 + 请求 + 截图）',
+             ref=[],
+             trap='PoC 要能重复复现三次以上，偶然成功不能当证据'),
+        dict(d='D3', title='定防护方案骨架',
+             todo=['针对复现的漏洞，逐个写「检测点在哪、怎么拦、拦不住怎么兜」',
+                   '画一张防护架构图：入口校验 → 权限判定 → 数据脱敏 → 审计留痕',
+                   '定核心指标（检出率、误报率、性能损耗）'],
+             out='防护架构图 ＋ 3 个可量化指标定义',
+             ref=['AI Agent全栈应用 · 阶段1 · 22.1 Agent威胁模型'],
+             trap='指标要先定后做，做完再凑指标会被一眼看穿'),
+        dict(d='D4', title='实现核心检测逻辑',
+             todo=['写检测模块（规则 / 特征 / 模型任一），能对输入打风险分',
+                   '接进一条真实链路（哪怕是个登录接口）',
+                   '记录每条判定的依据，便于解释'],
+             out='一个能对请求给风险分的服务 ＋ 判定日志',
+             ref=['AI Agent全栈应用 · 阶段1 · 22.2 工具与参数安全'],
+             trap='规则别写死一堆正则，要能说清每条规则对应哪类攻击'),
+        dict(d='D5', title='做攻防对照实验',
+             todo=['用自己构造的样本跑一遍：攻击样本能不能拦住、正常样本会不会误杀',
+                   '统计检出率、误报率、平均耗时',
+                   '把漏掉的样本单独分析，写清原因'],
+             out='一张混淆矩阵 ＋ 漏检样本归因表',
+             ref=['AI Agent全栈应用 · 阶段1 · 22.6 红队测试和人工接管'],
+             trap='只报检出率不报误报率，等于没做实验'),
+        dict(d='D6', title='补卡点 ＋ 写合规边界',
+             todo=['写清实验边界：数据来源、授权范围、不碰的东西',
+                   '整理测试报告（环境、样本、方法、结果、局限）',
+                   '写 docs/security.md'],
+             out='一份含合规声明的测试报告',
+             ref=[],
+             trap='⚠️ 没有合规声明的安全类作品，评委会直接质疑伦理问题'),
+        dict(d='D7', title='例会验收：现场演示拦截',
+             todo=['现场发一个攻击样本，看能不能拦住并留下审计日志',
+                   '现场发一个正常样本，看会不会误杀',
+                   '定下周分工：谁扩样本、谁做性能、谁写报告'],
+             out='一次攻防现场演示 ＋ 分工表',
+             ref=[],
+             trap='演示环境必须完全离线可控，别在现场连外网'),
+    ],
+    route=[
+        dict(phase='第一周 · 环境与复现', weeks='W1',
+             goal='能复现、能解释、能拦住的闭环',
+             must=['Docker 起靶场｜AI全栈开发工程师 · 阶段4 · 6.1 Docker 概念与安装',
+                   'HTTP 协议与抓包分析（请求行 / 头 / 体 / 状态码）',
+                   'OWASP Top 10 中与选题相关的 3 类',
+                   'Python 写检测脚本（字符串与正则处理）'],
+             skip='⚠️ 平台课程未覆盖安全方向，本节为自学清单，无对位章节',
+             out='D7 能现场拦截一个自己构造的攻击样本'),
+        dict(phase='W2–W4 · 检测能力', weeks='W2–W4',
+             goal='检出率和误报率都能拿数字说话',
+             must=['特征工程基础（什么特征能区分攻击与正常）',
+                   '简单的分类模型或规则引擎（不追求复杂）',
+                   '审计日志设计（谁、什么时候、做了什么、依据是什么）',
+                   'Agent 安全与 Guardrails｜AI Agent全栈应用 · 阶段1 · 22.5 输入输出Guardrails'],
+             skip='渗透测试全套工具链 —— 作品要的是「防得住」，不是「打得穿」',
+             out='一份混淆矩阵 + 一份漏检归因'),
+        dict(phase='W5–W8 · 可信与合规', weeks='W5–W8',
+             goal='让评委相信这套东西能真用，且不出事',
+             must=['数据脱敏与最小权限原则',
+                   '隐私计算或授权机制（按选题选一种，讲清代价）',
+                   '性能损耗测试（加了检测后慢了多少）',
+                   '合规边界声明（数据来源、授权、伦理）'],
+             skip='不要碰真实系统做测试，一旦被认定越界，作品直接出局',
+             out='一份「安全 + 合规 + 性能」三合一评估报告'),
+    ],
+),
+
+# ============================================================ 数媒与可视化
+'media': dict(
+    name='数媒 / 信息可视化设计',
+    fit='可视化设计 · 交互设计 · 短视频 · 静态设计 · 游戏与交互类选题',
+    hours='第一周约 14–18 小时（素材与规范先行，避免反复返工）',
+    tools=['figma', 'adobe', 'blender', 'vscode', 'echarts', 'git'],
+    days=[
+        dict(d='D1', title='装工具 ＋ 定视觉方向',
+             todo=['装 Figma（网页版即可）、PS/AI 或替代品、剪辑软件',
+                   '找 5 个对标作品截图，逐条写「它好在哪、我要学哪一点」',
+                   '定三个关键词（如「克制 / 数据感 / 校园」），后面所有设计都对齐它'],
+             out='5 张对标截图 + 3 个关键词 + 一页情绪板（Moodboard）',
+             ref=[],
+             trap='不找对标直接开做，做出来的东西没有参照，改都不知道往哪改'),
+        dict(d='D2', title='定规范：配色、字体、栅格、组件',
+             todo=['定一套色板（主色 1 + 辅色 2 + 中性 4），写 HEX 值',
+                   '定字号阶梯与字重，中文优先思源黑体 / 苹方',
+                   '定 8pt 栅格与基础组件（按钮、卡片、标签）'],
+             out='一页视觉规范图（色板 + 字阶 + 组件），可直接给队友用',
+             ref=[],
+             trap='配色超过 5 个主色就失控；先做黑白灰，最后上色'),
+        dict(d='D3', title='做 3 个核心界面 / 3 组分镜',
+             todo=['挑最能体现选题价值的 3 个页面（或 3 组分镜）做高保真',
+                   '每个页面写一句「这一屏要让人看到什么」',
+                   '导出 2 倍图，注意对齐与留白'],
+             out='3 张高保真稿（或 3 组分镜），能讲清每张的作用',
+             ref=[],
+             trap='别一上来做 20 个页面，3 个做透比 20 个做烂强得多'),
+        dict(d='D4', title='加交互 / 加动效',
+             todo=['Figma 里连可点原型，主流程能从头点到尾',
+                   '加 3 处关键动效（转场、数据变化、状态反馈），别全加',
+                   '导出一版可分享的原型链接或 MP4'],
+             out='一个能点通的原型链接 ＋ 一段 30 秒动效录屏',
+             ref=[],
+             trap='动效是为了让人看懂状态变化，不是为了炫；超过 300ms 就显得拖'),
+        dict(d='D5', title='作品集包装',
+             todo=['做封面 + 问题 + 方案 + 亮点 + 数据/证据 五段式说明页',
+                   '把过程稿（草图 / 迭代对比）也放进去，评委看重过程',
+                   '导出一版 PDF，控制在 20 页内'],
+             out='一版 20 页内的作品说明 PDF',
+             ref=[],
+             trap='只有结果图没有过程，评委会认为不是你做的'),
+        dict(d='D6', title='补卡点 ＋ 一致性检查',
+             todo=['全局检查：圆角、间距、字号、颜色是否统一',
+                   '找 3 个没参与的人看 30 秒，问「这是做什么的」',
+                   '按反馈改一轮，记录改了什么'],
+             out='一致性检查清单 ＋ 3 人盲测反馈记录',
+             ref=[],
+             trap='自己看久了看不出问题，必须找外人做 30 秒测试'),
+        dict(d='D7', title='例会验收：30 秒能不能看懂',
+             todo=['现场给队友看 30 秒，让他们复述这是什么',
+                   '定下周分工：谁做主视觉延展、谁做动效、谁写说明'],
+             out='30 秒盲测通过（3 人中 2 人能说对）＋ 分工表',
+             ref=[],
+             trap='需要讲解才看得懂的设计，在评审现场就是失败'),
+    ],
+    route=[
+        dict(phase='第一周 · 规范与三张图', weeks='W1',
+             goal='有一套能复用的规范，和 3 张拿得出手的稿',
+             must=['Figma 基础操作（画板 / 自动布局 / 组件 / 变体）',
+                   '配色与字阶基础（对比度、层级、留白）',
+                   '版式栅格（8pt 栅格与对齐）',
+                   '可点原型与基础动效（Smart Animate）'],
+             skip='⚠️ 平台课程未覆盖设计方向，本节为自学清单，无对位章节',
+             out='D7 能做到「不给讲解，别人 30 秒看懂」'),
+        dict(phase='W2–W4 · 数据与叙事', weeks='W2–W4',
+             goal='不只是好看，还能把数据讲成故事',
+             must=['ECharts 图表定制（改配置项而不是换库）',
+                   '信息层级设计（一屏只讲一件事）',
+                   '叙事结构（问题 → 发现 → 方案 → 验证）'],
+             skip='3D 与高级动效（Blender / AE 全套）—— 除非选题本身是影视动画类',
+             out='一份「图能自己说话」的作品：不看文字也知道结论'),
+        dict(phase='W5–W8 · 交付与答辩', weeks='W5–W8',
+             goal='作品集与答辩材料能独立成立',
+             must=['作品集排版（封面 / 过程 / 结果 / 数据）',
+                   '答辩视觉（一页一个观点，字号够大）',
+                   '导出与压缩（图片体积、视频码率、投屏清晰度）'],
+             skip='不要堆渲染特效，评审看的是解决问题，不是炫技',
+             out='一版可直接投的 PDF ＋ 一套答辩视觉'),
+    ],
+),
+}
+
+# ---------------------------------------------------------------- 选题级覆盖
+# 只写该选题特有的差异，其余继承技术栈模板
+TOPIC_OVERRIDE = {
+    31: dict(stack='ai_agent',
+             extra='本题是多智能体协同，D3 之后必须再加一个「Agent 之间怎么传状态」的验证：'
+                   '两个 Agent 交替处理同一份文献，检查上下文有没有丢。文献必须用真实 PDF，不要用手写摘要冒充。',
+             tools=['python', 'conda', 'vscode', 'git', 'ollama', 'langchain', 'chroma', 'jupyter']),
+    32: dict(stack='ai_agent',
+             extra='本题答错代价高（合规问答），D4 的 RAG 必须加「拒答」能力：检索置信度低于阈值时明确说找不到，'
+                   '并把这个阈值作为可调参数写进报告。评测集里至少 30% 是「应该拒答」的题。',
+             tools=['python', 'conda', 'vscode', 'git', 'ollama', 'langchain', 'chroma', 'jupyter']),
+    33: dict(stack='microsvc',
+             extra='本题有「预测」成分，D2 建表时就要留出预测结果表（设备号、预测时间、故障概率、依据特征），'
+                   '否则后面模型结果没地方落，只能塞进备注字段。',
+             tools=['jdk', 'maven', 'idea', 'git', 'mysql', 'dbeaver', 'docker', 'redis',
+                    'rocketmq', 'nacos', 'postman', 'node', 'pnpm', 'python']),
+    34: dict(stack='microsvc',
+             extra='本题核心是压测，D5 之后必须加一步：用 JMeter 或 wrk 压出 QPS / P99 / 错误率三条曲线，'
+                   '并存下压测脚本。没有压测数据的高并发选题，等于没做。',
+             tools=['jdk', 'maven', 'idea', 'git', 'mysql', 'dbeaver', 'docker', 'redis',
+                    'rocketmq', 'nacos', 'postman', 'node', 'pnpm']),
+    35: dict(stack='data',
+             extra='本题是数据中台，D2 采集要覆盖至少 3 个异构源（数据库 / 接口 / 文件），'
+                   '并在 D3 清洗阶段做「同名字段口径对齐」，这是中台类作品最容易被追问的点。',
+             tools=['python', 'conda', 'jupyter', 'mysql', 'dbeaver', 'vscode', 'git', 'echarts',
+                    'docker']),
+    36: dict(stack='ai_agent',
+             extra='本题是 Coding Agent，D3 的工具里必须有「读文件 / 写文件 / 跑测试」三件套，'
+                   '并且要能展示「改完代码测试变绿」的完整过程。要求准备 5 个有 bug 的真实代码片段做回归。',
+             tools=['python', 'conda', 'vscode', 'git', 'ollama', 'langchain', 'chroma', 'jupyter']),
+    37: dict(stack='iot',
+             extra='本题是边缘推理，D2 之后要确认板子能不能跑模型：先用轻量模型（如 YOLOv8n / MobileNet）'
+                   '在板子上跑通一帧，跑不动就改成「边缘采集 + 就近网关推理」，别硬扛。',
+             tools=['arduino', 'mqtt', 'python', 'vscode', 'git', 'mysql', 'docker', 'echarts',
+                    'opencv', 'labelimg', 'torch']),
+    38: dict(stack='data',
+             extra='本题是舆情监测，D2 采集要写清「只采公开内容」，并把发布时间、来源、抓取时间三个时间戳都存下来；'
+                   'D4 分析必须做情感极性的抽检校验（人工标 50 条对一遍），否则情感结论不可信。',
+             tools=['python', 'conda', 'jupyter', 'mysql', 'dbeaver', 'vscode', 'git', 'echarts']),
+    39: dict(stack='ai_agent',
+             extra='本题是知识图谱，D2 要先画出实体与关系模型（课程 / 先修 / 学分 / 归属），'
+                   '再决定用图数据库还是关系表；不要一上来装 Neo4j，校级体量用关系表三张就够。',
+             tools=['python', 'conda', 'vscode', 'git', 'ollama', 'langchain', 'chroma', 'jupyter',
+                    'mysql']),
+    40: dict(stack='sec',
+             extra='本题是隐私保护，D3 防护方案里必须包含「授权粒度」与「撤回机制」两部分，'
+                   'D5 验证要有一次「用户撤回授权后数据不可再访问」的完整演示。这是本题的评分核心。',
+             tools=['python', 'vscode', 'git', 'docker', 'burp', 'wireshark', 'mysql']),
+    # ---- 小挑（创业计划）计算机类：作品是商业计划书，但技术底座必须真能跑
+    91: dict(stack='ai_agent',
+             extra='本题是小挑（商业计划），评委先看商业逻辑再看技术。但技术部分必须有一个能真跑的客服 Agent：'
+                   'D5 之后要加「同一问题连续追问 3 轮不串话」的验证，并给出单次对话成本。'
+                   '别只交一份 BP 就完事，现场一定会让你演示。',
+             tools=['python', 'conda', 'vscode', 'git', 'ollama', 'langchain', 'chroma']),
+    92: dict(stack='ai_agent',
+             extra='本题是视觉质检，D2 的数据采集要拿到真实缺陷样本（哪怕只有 50 张），'
+                   '没有真实缺陷图就只能讲方案，评委会直接问「你测过吗」。D5 必须报准确率与漏检率两个数。',
+             tools=['python', 'conda', 'vscode', 'git', 'opencv', 'labelimg', 'torch']),
+    93: dict(stack='iot',
+             extra='本题是农业 IoT，硬件必须在真实大棚或模拟环境跑过 7 天以上。'
+                   '小挑评审特别看「成本与可复制性」：一块节点的 BOM 成本要算到元，这是商业模式的地基。',
+             tools=['arduino', 'mqtt', 'python', 'vscode', 'git', 'mysql', 'docker', 'echarts']),
+    94: dict(stack='microsvc',
+             extra='本题是物流调度，核心不是增删改查而是「调度算法」。D4 之后要写一个简单的路径/分单算法'
+                   '（哪怕贪心也行），并用 20 个模拟订单跑出「优化前后里程差」。没有这个对比，就是个普通后台。',
+             tools=['jdk', 'maven', 'idea', 'git', 'mysql', 'dbeaver', 'docker', 'redis',
+                    'rocketmq', 'nacos', 'postman', 'node', 'pnpm']),
+    95: dict(stack='microsvc',
+             extra='本题是消防巡检，硬约束是「隐患必须闭环」：发现 → 派单 → 整改 → 复核，四态缺一不可。'
+                   'D2 建表时就把这四态和超时规则建进去，别等做完了发现状态流转补不上。',
+             tools=['jdk', 'maven', 'idea', 'git', 'mysql', 'dbeaver', 'docker', 'redis',
+                    'rocketmq', 'nacos', 'postman', 'node', 'pnpm']),
+    96: dict(stack='ai_agent',
+             extra='本题是道路病害巡检，涉及图像识别与定位。D3 之后要解决「一张图怎么对应到具体路段」，'
+                   '最简单可靠的做法是采集时同时记 GPS 与拍摄时间，别指望靠图像反推位置。',
+             tools=['python', 'conda', 'vscode', 'git', 'opencv', 'labelimg', 'torch', 'echarts']),
+    97: dict(stack='microsvc',
+             extra='本题是能耗碳排，指标口径是生死线：碳排放因子用哪个标准、算的是范围一还是范围二，'
+                   'D2 建表前就要定死并写进文档。口径说不清，数据再准也不算数。',
+             tools=['jdk', 'maven', 'idea', 'git', 'mysql', 'dbeaver', 'docker', 'redis',
+                    'rocketmq', 'nacos', 'postman', 'node', 'pnpm', 'python']),
+    98: dict(stack='ai_agent',
+             extra='本题是垃圾分类识别，D5 要给出「分错类的代价」分析（有害垃圾分错代价远高于其他），'
+                   '并据此定不同的置信度阈值。这一个小设计能明显拉开和其他作品的距离。',
+             tools=['python', 'conda', 'vscode', 'git', 'opencv', 'labelimg', 'torch']),
+    99: dict(stack='media',
+             extra='本题是数字文博，核心资产是数字化素材与叙事。D1 的对标要包含至少 3 个博物馆线上展，'
+                   'D3 要做出「一个文物从多个角度被看见」的交互，而不是静态页面。',
+             tools=['figma', 'adobe', 'blender', 'vscode', 'echarts', 'git']),
+    100: dict(stack='microsvc',
+              extra='本题是文旅票务，硬需求是「不超卖」：D4 的库存扣减必须做压测（并发 100 抢 50 张票），'
+                   '并给出「有没有超卖」的验证结果。这是票务类作品唯一的技术命门。',
+              tools=['jdk', 'maven', 'idea', 'git', 'mysql', 'dbeaver', 'docker', 'redis',
+                     'rocketmq', 'nacos', 'postman', 'node', 'pnpm']),
+}
+
+# 关键词兜底：方向没命中时按选题名推断，UI 会标注「按关键词推断，可切换」
+KEYWORD2STACK = [
+    ('微服务', 'microsvc'), ('调度', 'microsvc'), ('平台', 'microsvc'), ('中台', 'microsvc'),
+    ('票务', 'microsvc'), ('派单', 'microsvc'), ('后台', 'microsvc'), ('SaaS', 'microsvc'),
+    ('智能体', 'ai_agent'), ('Agent', 'ai_agent'), ('RAG', 'ai_agent'), ('问答', 'ai_agent'),
+    ('识别', 'ai_agent'), ('视觉', 'ai_agent'), ('质检', 'ai_agent'), ('模型', 'ai_agent'),
+    ('数据', 'data'), ('检索', 'data'), ('舆情', 'data'), ('知识图谱', 'data'), ('分析', 'data'),
+    ('物联网', 'iot'), ('嵌入式', 'iot'), ('传感', 'iot'), ('巡检', 'iot'), ('边缘', 'iot'),
+    ('安全', 'sec'), ('隐私', 'sec'), ('防护', 'sec'), ('攻防', 'sec'),
+    ('可视化', 'media'), ('设计', 'media'), ('文博', 'media'), ('短片', 'media'), ('交互', 'media'),
+]
+
+
+def guess_stack(topic):
+    """仅对计算机类选题兜底推断；商科走另一套（未覆盖时由 UI 降级）。"""
+    if topic.get('专业类别') != '计算机':
+        return None
+    name = topic.get('选题名称', '')
+    for kw, sk in KEYWORD2STACK:
+        if kw in name:
+            return sk
+    return None
+
+# ---------------------------------------------------------------- 方向 → 技术栈
+DIR2STACK = {
+    '软件工程微服务': 'microsvc',
+    '软件应用与开发': 'microsvc',
+    'AI 智能体': 'ai_agent',
+    '人工智能应用': 'ai_agent',
+    '微课与AI辅助教学': 'ai_agent',
+    '数据与检索': 'data',
+    '大数据应用': 'data',
+    '物联网嵌入式': 'iot',
+    '物联网应用与物联网创新转化': 'iot',
+    '网络与安全': 'sec',
+    'AI+信息可视化设计': 'media',
+    'AI+数媒游戏与交互设计': 'media',
+    'AI+数媒静态设计': 'media',
+    'AI+数媒动漫与短片': 'media',
+}
+
+
+def plan_of(topic):
+    """给一条选题产出落地方案；商科选题暂返回 None（由 UI 降级显示）。"""
+    if not topic:
+        return None
+    idx = topic.get('序号')
+    ov = TOPIC_OVERRIDE.get(idx)
+    guessed = False
+    if ov:
+        stack_key = ov['stack']
+    else:
+        stack_key = DIR2STACK.get(topic.get('方向', ''))
+        if not stack_key:
+            stack_key = guess_stack(topic)
+            guessed = bool(stack_key)
+        if not stack_key:
+            return None
+    st = STACKS[stack_key]
+    tools = [TOOLS[t] for t in (ov['tools'] if ov else st['tools'])]
+    return dict(
+        key=stack_key,
+        name=st['name'],
+        fit=st['fit'],
+        hours=st['hours'],
+        guessed=guessed,
+        tools=[dict(name=t['name'], ver=t['ver'], why=t['why'], fb=t['fb'], must=t['must']) for t in tools],
+        days=[dict(d=x['d'], title=x['title'], todo=x['todo'], out=x['out'],
+                   ref=x['ref'], trap=x['trap']) for x in st['days']],
+        route=[dict(phase=r['phase'], weeks=r['weeks'], goal=r['goal'], must=r['must'],
+                    skip=r['skip'], out=r['out']) for r in st['route']],
+        override=ov['extra'] if ov else '',
+    )
+
+
+def build_all(topics):
+    """构建期内联用：只输出被引用到的栈模板 + 每条选题对应的栈 key + 覆盖说明。"""
+    idx_map, ov_map, guess_set = {}, {}, []
+    for t in topics:
+        i = t.get('序号')
+        ov = TOPIC_OVERRIDE.get(i)
+        sk = ov['stack'] if ov else DIR2STACK.get(t.get('方向', ''))
+        if not sk:
+            sk = guess_stack(t)
+            if sk:
+                guess_set.append(str(i))
+        if not sk:
+            continue
+        idx_map[str(i)] = sk
+        if ov:
+            ov_map[str(i)] = dict(extra=ov['extra'],
+                                  tools=[TOOLS[x] for x in ov['tools']])
+    stacks = {}
+    for k, st in STACKS.items():
+        stacks[k] = dict(
+            name=st['name'], fit=st['fit'], hours=st['hours'],
+            tools=[TOOLS[x] for x in st['tools']],
+            days=st['days'], route=st['route'],
+        )
+    return dict(stacks=stacks, of=idx_map, ov=ov_map, guess=guess_set)
+
+
+if __name__ == '__main__':
+    import json
+    import os
+    import sys
+    ROOT = '/Users/zhangjiaming/WorkBuddy/竞赛'
+    sys.path.append(os.path.join(ROOT, 'working', '执行方案'))
+    topics = json.load(open(os.path.join(ROOT, 'working', '选题生成', 'topics_all.json'), encoding='utf-8'))
+    out = build_all(topics)
+    hit = len(out['of'])
+    comp = sum(1 for t in topics if t.get('专业类别') == '计算机')
+    print('栈数=%d  命中选题=%d / 计算机选题=%d  选题级覆盖=%d' % (len(out['stacks']), hit, comp, len(out['ov'])))
+    miss = [t['序号'] for t in topics if t.get('专业类别') == '计算机' and str(t['序号']) not in out['of']]
+    print('未命中计算机选题:', miss)
