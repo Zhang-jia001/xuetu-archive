@@ -83,9 +83,24 @@ NODE_PATH=~/.workbuddy/binaries/node/workspace/node_modules \
 # 后端：30 项接口回归（先启动 server）
 node server/index.js &
 node server/test_api.js
+
+# 在线模式端到端：自己起临时后端 + jsdom 打开真页面走完整流程（21 项）
+NODE_PATH=~/.workbuddy/binaries/node/workspace/node_modules \
+  node --max-old-space-size=8192 working/竞赛指导台/check_online.js
 ```
 
-> 单文件超过 500KB，跑 jsdom 必须带 `--max-old-space-size=6144`，否则会被 SIGTERM（退出码 137）。
+> 单文件超过 500KB，跑 jsdom 必须带 `--max-old-space-size`（前端 6144，在线端到端 8192），否则会被 SIGTERM（退出码 137）。
+
+### 深链接
+
+| 链接 | 用途 |
+|---|---|
+| `#coach` | 今天做什么（默认首页） |
+| `#project/topic` `#project/team` `#project/run` `#project/close` | 项目四阶段 |
+| `#paper/thesis` `#paper/proposal` `#paper/review` `#paper/journal` `#paper/contest` | 论文写作台 |
+| `#library/events` `#library/families` `#library/topics` | 资源库 |
+| `?demo=1` | 塞两个示例项目，用来演示 |
+| `?login=1` | 打开就弹登录框（发给队员的链接用这个） |
 
 ---
 

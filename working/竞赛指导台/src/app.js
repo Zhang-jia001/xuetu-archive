@@ -2501,7 +2501,11 @@
     Api.boot().then(function () {
       Api.renderChip();
       if (Api.online && Api.user) pullFromServer();
-      else if (Api.online) renderAll();
+      else if (Api.online) {
+        renderAll();
+        // ?login=1 直接把登录框怼到脸上，方便队长发链接给队员
+        if (/(^|[?&])login=1/.test(location.search)) Api.openAuth('login');
+      }
     });
     setInterval(pollRemote, 15000);
   }
