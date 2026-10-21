@@ -311,10 +311,14 @@
       }
     }
     $('#navProject').disabled = !p;
+    $$('.tabbar-item[data-go="project"]').forEach(function (b) { b.disabled = !p; });
     $$('#navSub .nav-item').forEach(function (b) { b.disabled = !p; });
     $('#navSub').classList.toggle('is-open', !!p && S.view === 'project');
 
     $$('.nav-item[data-go]').forEach(function (b) {
+      b.classList.toggle('is-on', b.getAttribute('data-go') === S.view);
+    });
+    $$('.tabbar-item[data-go]').forEach(function (b) {
       b.classList.toggle('is-on', b.getAttribute('data-go') === S.view);
     });
     $$('#navSub .nav-item').forEach(function (b) {
@@ -2412,6 +2416,9 @@
   /* ============================================================ 绑定 */
   function bind() {
     $$('.nav-item[data-go]').forEach(function (b) {
+      b.addEventListener('click', function () { go(b.getAttribute('data-go')); });
+    });
+    $$('.tabbar-item[data-go]').forEach(function (b) {
       b.addEventListener('click', function () { go(b.getAttribute('data-go')); });
     });
     $$('#navSub .nav-item').forEach(function (b) {
