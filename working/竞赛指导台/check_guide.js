@@ -42,6 +42,9 @@ t('数据：论文答辩 8/11 页 + 10 追问',
   w.__DATA__.paper.pdef.opening.pages.length === 8 &&
   w.__DATA__.paper.pdef.final.pages.length === 11 &&
   w.__DATA__.paper.pdef.qa.length === 10);
+t('数据：陪跑六赛事覆盖层', w.__DATA__.coachEv &&
+  Object.keys(w.__DATA__.coachEv).length === 6 &&
+  Object.keys(w.__DATA__.coachEv.ZDB.acts).length >= 10);
 
 // ---------- 2 陪跑（默认首页）
 t('默认进陪跑页', q('#view-coach').classList.contains('is-on'));
@@ -92,6 +95,14 @@ const second = qa('#ptab-topic .match')[1];
 if (second) second.click();
 t('可切换选题', q('#ptab-topic .match.is-on') !== q('#ptab-topic .match'));
 
+// ---------- 4.5 陪跑按赛事定制（ZDB 覆盖层）
+qa('.nav-item[data-go]').find((x) => x.dataset.go === 'coach').click();
+t('陪跑显示赛事定制说明', q('#coachBody').textContent.indexOf('已按「正大杯') >= 0,
+  q('#coachBody').textContent.slice(0, 80));
+t('ZDB 覆盖层已换步骤内容', w.__DATA__.coachEv.ZDB.acts.A02.how.join('').indexOf('匿名版') >= 0);
+t('侧栏待办计数仍为 33 步', /\/33/.test(q('#navCoachDone').textContent), q('#navCoachDone').textContent);
+qa('.nav-item[data-go]').find((x) => x.dataset.go === 'project').click();
+
 // ---------- 5 组队 tab
 qa('#stepper .step').find((x) => x.dataset.tab === 'team').click();
 t('人数结构表存在', qa('#ptab-team table').length >= 2);
@@ -111,6 +122,7 @@ t('门禁表存在', !!gatesTbl);
 t('门禁 6 条', !!gatesTbl && gatesTbl.querySelectorAll('tbody tr').length === 6);
 t('排期表存在', qa('#ptab-run table').length >= 3);
 t('推进清单 12 项', qa('#ptab-run .check-item').length === 12);
+t('推进页有保姆辅导桥', !!q('#ptab-run [data-go-coach]'));
 
 // 选题级落地方案（第一周开工单 + 学习路线）
 t('开工单区块存在', qa('#ptab-run .day').length === 7, qa('#ptab-run .day').length + ' 天');

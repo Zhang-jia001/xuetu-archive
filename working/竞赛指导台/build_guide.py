@@ -278,6 +278,7 @@ def main():
         defense=DK.build_all(),
         paper=PK.build_all(),
         coach=CK.build_all(),
+        coachEv=CK.EV,
         team=TEAM,
         gates=GATES,
         closing=CLOSING,

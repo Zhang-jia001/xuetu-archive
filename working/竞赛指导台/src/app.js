@@ -302,9 +302,9 @@
     if (cdEl) {
       if (p) {
         var bn = actDoneCount(p);
-        cdEl.textContent = bn + '/' + ck().total;
+        cdEl.textContent = bn + '/' + ck(p).total;
         cdEl.style.display = '';
-        cdEl.classList.toggle('is-seen', bn === ck().total);
+        cdEl.classList.toggle('is-seen', bn === ck(p).total);
       } else {
         cdEl.textContent = '未开始';
         cdEl.style.display = '';
@@ -1065,6 +1065,14 @@
     var c = C(p), cd = cardOf(p), pl = planOf(p), ep = execPlan(p);
     var html = '';
 
+    /* 保姆辅导桥：这一页是全景图，逐步执行在「今天做什么」 */
+    html += '<div class="callout blue"><span class="ct">这一页看全景，执行去「今天做什么」</span>' +
+      '下面所有表和清单是项目的<b>全景图</b>，不用照着它一步一步执行。' +
+      '「今天做什么」已经按<b>' + esc(c.short.split('（')[0]) +
+      (T(p) ? ' ×《' + esc(T(p).选题名称) + '》' : '') +
+      '</b>生成保姆级推进步骤：每步 15–60 分钟，写清怎么做、做完什么样、卡住了怎么办，做完勾一下自动解锁下一步。' +
+      '<div class="btn-row" style="margin-top:10px;margin-bottom:0"><button class="btn sm" data-go-coach="1">去今天做什么，跟着走 →</button></div></div>';
+
     if (ep) {
       var stSel = '<select id="planStackSel" class="mini-sel">' +
         Object.keys(D.plan.stacks).map(function (k) {
@@ -1152,6 +1160,9 @@
     html += checkBlock(p, 'run', '04.7', '推进阶段任务') + tabFooter(p, 'run');
     $('#ptab-run').innerHTML = html;
     bindChecks(p, 'run');
+    $$('#ptab-run [data-go-coach]').forEach(function (b) {
+      b.addEventListener('click', function () { go('coach'); });
+    });
     bindSchedule(p);
 
     var sel = $('#planStackSel');
@@ -1607,7 +1618,25 @@
   }
 
   /* ============================================================ 陪跑：今天做什么 */
-  function ck() { return D.coach; }
+  /* ck(p)：按项目赛事应用覆盖层后的陪跑数据（带缓存；不传 p 用最近一次的赛事） */
+  var ckCache = { ev: '', data: null };
+  function ck(p) {
+    var ev = (p && p.event) || ckCache.ev || '';
+    if (ckCache.data && ckCache.ev === ev) return ckCache.data;
+    var base = D.coach;
+    var ov = ev && D.coachEv && D.coachEv[ev];
+    if (!ov) { ckCache = { ev: ev, data: base }; return base; }
+    var data = {};
+    for (var k in base) data[k] = base[k];
+    data.acts = base.acts.map(function (a) {
+      var o = ov.acts[a.id];
+      return o ? Object.assign({}, a, o) : a;
+    });
+    data.evLabel = ov.label;
+    data.evNote = ov.note;
+    ckCache = { ev: ev, data: data };
+    return data;
+  }
 
   function boxOf(p) {
     if (!p.coach) p.coach = {};
@@ -1616,21 +1645,21 @@
     if (!p.coach.log) p.coach.log = [];
     return p.coach;
   }
-  function actById(id) {
-    return ck().acts.filter(function (a) { return a.id === id; })[0] || null;
+  function actById(id, p) {
+    return ck(p).acts.filter(function (a) { return a.id === id; })[0] || null;
   }
   function actCur(p) {
     var b = boxOf(p);
-    var left = ck().acts.filter(function (a) { return !b.done[a.id]; });
+    var left = ck(p).acts.filter(function (a) { return !b.done[a.id]; });
     return left[0] || null;
   }
   function actNext(p, n) {
     var b = boxOf(p);
-    return ck().acts.filter(function (a) { return !b.done[a.id]; }).slice(1, 1 + n);
+    return ck(p).acts.filter(function (a) { return !b.done[a.id]; }).slice(1, 1 + n);
   }
   function actDoneCount(p) {
     var b = boxOf(p);
-    return ck().acts.filter(function (a) { return b.done[a.id]; }).length;
+    return ck(p).acts.filter(function (a) { return b.done[a.id]; }).length;
   }
   function actPh(id) {
     return ck().phases.filter(function (x) { return x.id === id; })[0] || { name: '', days: '' };
@@ -1763,7 +1792,7 @@
     var b = boxOf(p);
     var cur = actCur(p);
     var done = actDoneCount(p);
-    var total = ck().total;
+    var total = ck(p).total;
     var html = '';
 
     // 顶部：走到哪了
@@ -1776,17 +1805,28 @@
       ' · ' + esc(C(p).short.split('（')[0]) +
       (p.deadline ? ' · 截止 ' + esc(p.deadline) : '') + '</div>';
 
+    // 赛事定制说明：这 33 步按「赛事 × 选题」换过内容
+    var ckd = ck(p);
+    if (ckd.evNote) {
+      html += '<div class="callout blue"><span class="ct">已按「' + esc(ckd.evLabel) + '」定制</span>' +
+        esc(ckd.evNote) + '</div>';
+    }
+
     if (cur) {
       var ph = actPh(cur.ph);
       var asg = whoOf(p, cur);
+      var tp = T(p);
       html += '<div class="sec act-live">' +
         '<div class="act-top"><span class="act-ph">' + esc(ph.name) + '</span>' +
         '<span class="act-time">' + esc(ph.days) + '</span></div>' +
         '<h2 class="act-title">' + esc(cur.t) + '</h2>' +
         '<div class="act-meta"><span class="mono">' + cur.id + '</span>' +
-        '<span>约 ' + cur.min + ' 分钟</span><span>建议：' + esc(ck().who[cur.who].name) + '</span>' +
+        '<span>约 ' + cur.min + ' 分钟</span><span>建议：' + esc(ck(p).who[cur.who].name) + '</span>' +
         '<span>指派给 <b>' + esc(assignName(p, asg)) + '</b></span></div>' +
         '<div class="act-why">' + cur.why + '</div>' +
+        (tp && (cur.ph === 'build' || cur.ph === 'write') ?
+          '<div class="callout blue"><span class="ct">结合你的选题</span>《' + esc(tp.选题名称) + '》：这一步的成果最后落到「验收物」——' +
+          esc(tp.验收物 || '见选题卡') + '</div>' : '') +
         '<div class="act-h">怎么做</div>' +
         '<ol class="act-how">' + cur.how.map(function (s) { return '<li>' + s + '</li>'; }).join('') + '</ol>' +
         '<div class="act-done-box"><span class="adb-k">做完的样子</span><span class="adb-t">' + cur.done + '</span></div>' +
@@ -1830,8 +1870,8 @@
     if (log.length) {
       html += '<div class="sec"><div class="sec-head"><span class="sec-num">已完成</span>' +
         '<h2 class="sec-title">最近做完的 ' + Math.min(5, log.length) + ' 步</h2></div>' +
-        '<div class="done-list">' + log.slice(-5).reverse().map(function (id) {
-          var a = actById(id);
+        '<div class="done-list">' +         log.slice(-5).reverse().map(function (id) {
+          var a = actById(id, p);
           if (!a) return '';
           return '<div class="dl-row"><span class="dl-ck">✓</span><span class="dl-t">' + esc(a.t) + '</span>' +
             '<button class="dl-undo" data-act-undo="' + id + '">撤销</button></div>';
@@ -2029,15 +2069,15 @@
         '<button class="btn ghost sm" data-act-go="project/team">现在去加队员 →</button>';
     }
 
-    var unassigned = ck().acts.filter(function (a) {
+    var unassigned = ck(p).acts.filter(function (a) {
       return !b.done[a.id] && a.who !== 'lead' && a.who !== 'all';
     }).length;
 
     html += '<div class="board">' + lanes.map(function (L) {
-      var mine = ck().acts.filter(function (a) {
+      var mine = ck(p).acts.filter(function (a) {
         return !b.done[a.id] && whoOf(p, a) === L.key;
       });
-      var dn = ck().acts.filter(function (a) {
+      var dn = ck(p).acts.filter(function (a) {
         return b.done[a.id] && whoOf(p, a) === L.key;
       }).length;
       var next = mine[0];
