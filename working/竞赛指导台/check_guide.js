@@ -45,6 +45,10 @@ t('数据：论文答辩 8/11 页 + 10 追问',
 t('数据：陪跑六赛事覆盖层', w.__DATA__.coachEv &&
   Object.keys(w.__DATA__.coachEv).length === 6 &&
   Object.keys(w.__DATA__.coachEv.ZDB.acts).length >= 10);
+t('数据：技术栈 8 个（计算机 6 + 商科 2）', Object.keys(w.__DATA__.plan.stacks).length === 8 &&
+  !!w.__DATA__.plan.stacks.survey && !!w.__DATA__.plan.stacks.lightapp);
+t('数据：商科双栈任务库', (w.__DATA__.dev.tasks.survey || []).length >= 12 &&
+  (w.__DATA__.dev.tasks.lightapp || []).length >= 12);
 
 // ---------- 2 陪跑（默认首页）
 t('默认进陪跑页', q('#view-coach').classList.contains('is-on'));
@@ -123,12 +127,16 @@ t('门禁 6 条', !!gatesTbl && gatesTbl.querySelectorAll('tbody tr').length ===
 t('排期表存在', qa('#ptab-run table').length >= 3);
 t('推进清单 12 项', qa('#ptab-run .check-item').length === 12);
 t('推进页有保姆辅导桥', !!q('#ptab-run [data-go-coach]'));
+t('商科项目挂 AI 创造者课程', q('#ptab-run').textContent.indexOf('AI 创造者') >= 0);
+t('泳道周次锚定日期', /\d{1,2}\.\d{1,2}–\d{1,2}\.\d{1,2}/.test(q('#ptab-run th.lane-w').textContent),
+  q('#ptab-run th.lane-w').textContent.trim());
+t('排期对照截止日', /排期撞上截止日|时间够/.test(q('#ptab-run').textContent));
 
 // 选题级落地方案（第一周开工单 + 学习路线）
 t('开工单区块存在', qa('#ptab-run .day').length === 7, qa('#ptab-run .day').length + ' 天');
 t('每天有交付物', qa('#ptab-run .day-out').length === 7);
 t('软件清单标必装', (q('#ptab-run').textContent.match(/必装/g) || []).length >= 3);
-t('技术栈可切换', !!q('#planStackSel') && qa('#planStackSel option').length === 6);
+t('技术栈可切换', !!q('#planStackSel') && qa('#planStackSel option').length === 8);
 t('学习路线三段', qa('#ptab-run .route').length === 3, qa('#ptab-run .route').length + ' 段');
 t('路线带课程对位', qa('#ptab-run .cref').length > 10, qa('#ptab-run .cref').length + ' 条');
 

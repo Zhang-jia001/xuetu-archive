@@ -959,6 +959,23 @@
         '要么补人，要么把对应模块从验收范围里砍掉 —— 不要假设「到时候挤一挤就做完了」。</div>';
     }
 
+    // 结合赛事截止日：排期长度 vs 剩余时间
+    var dlTs = p.deadline ? new Date(p.deadline + 'T23:59:59').getTime() : 0;
+    var weeksLeft = dlTs ? Math.ceil((dlTs - Date.now()) / (7 * 864e5)) : null;
+    if (weeksLeft != null) {
+      if (sc.weeks > weeksLeft) {
+        html += '<div class="callout rose"><span class="ct">排期撞上截止日</span>' +
+          '按现在这套人马要 <b>' + sc.weeks + ' 周</b>，但距「' + esc(p.deadline) + '」只剩 <b>' + weeksLeft + ' 周</b>。' +
+          '三条路马上选一条：① 补人／换兼岗把 ' + full.weeks + ' 周的满员排期压出来；② 砍范围，把排在最后 ' +
+          (sc.weeks - Math.max(weeksLeft, full.weeks)) + ' 周的任务从验收范围里删掉；③ 和指导老师确认能不能只交主线。' +
+          '默认按 ① 做，今天就动。</div>';
+      } else {
+        html += '<div class="callout mint"><span class="ct">时间够</span>' +
+          '按这套人马 ' + sc.weeks + ' 周做完，距截止还剩 ' + (weeksLeft - sc.weeks) + ' 周缓冲。' +
+          '缓冲不是用来加功能的 —— 留给返工、答辩演练和突发状况。</div>';
+      }
+    }
+
     // 队伍配置
     html += '<h3>队伍配置</h3>';
     if ((p.members || []).length) {
@@ -981,11 +998,18 @@
         '<div class="btn-row"><button class="btn" data-tab-go="team">去填队员 →</button></div></div>';
     }
 
-    // 泳道
+    // 泳道（周次锚定到具体日期：W1 从今天起算）
     var maxW = sc.weeks;
+    var wkStart = new Date(); wkStart.setHours(0, 0, 0, 0);
+    var wkRange = function (i) {
+      var s = new Date(wkStart.getTime() + (i - 1) * 7 * 864e5);
+      var e = new Date(s.getTime() + 6 * 864e5);
+      var f = function (d) { return (d.getMonth() + 1) + '.' + d.getDate(); };
+      return f(s) + '–' + f(e);
+    };
     html += '<h3>谁在第几周做什么</h3><div class="tbl-wrap"><table class="lane-tbl"><thead><tr>' +
       '<th class="lane-h">成员 / 角色</th>';
-    for (var i = 1; i <= maxW; i++) html += '<th class="lane-w">W' + i + '</th>';
+    for (var i = 1; i <= maxW; i++) html += '<th class="lane-w">W' + i + '<span>' + wkRange(i) + '</span></th>';
     html += '</tr></thead><tbody>';
     roster.forEach(function (m) {
       html += '<tr><th class="lane-h"><b>' + esc(m.name) + '</b><span>' + esc(roleOf(m.role).n) + '</span></th>';
@@ -993,7 +1017,7 @@
         var hit = (sc.lanes[m.i] || []).filter(function (x) { return x.w === w; })[0];
         if (!hit) { html += '<td class="lane-c"></td>'; continue; }
         html += '<td class="lane-c is-on' + (hit.forced ? ' is-forced' : '') + '" title="' +
-          esc(hit.t.t + '｜' + hit.t.out) + '"><span class="lane-code">' + esc(hit.t.id) + '</span>' +
+          esc(hit.t.t + '｜' + wkRange(w) + '｜' + hit.t.out) + '"><span class="lane-code">' + esc(hit.t.id) + '</span>' +
           '<span class="lane-name">' + esc(shortName(hit.t.t)) + '</span></td>';
       }
       html += '</tr>';
@@ -1022,6 +1046,7 @@
         var d = sc.done[t.id] || {};
         var onChain = critSet[t.id];
         return ['<span class="mono nowrap">W' + (d.w || '-') + '</span>' +
+          (d.w ? '<br><span class="faint nowrap">' + wkRange(d.w) + '</span>' : '') +
           (onChain ? ' <span class="tag solid">关键</span>' : ''),
           '<b>' + esc(t.t) + '</b> <span class="faint mono">' + esc(t.id) + '</span>',
           '<span class="muted small">' + esc(t.mod) + '</span>',
@@ -1117,8 +1142,9 @@
       html += '<div class="sec"><div class="sec-head"><span class="sec-num">04.1</span>' +
         '<h2 class="sec-title">第一周开工单</h2><span class="sec-note">该方向暂未覆盖</span></div>' +
         '<div class="callout amber"><span class="ct">这份方案还没铺到</span>' +
-        '目前开工单覆盖计算机轨的 6 个技术栈（微服务 / AI 应用 / 数据 / 物联网 / 安全 / 数媒）。' +
-        '商科方向的调研与创业计划类开工单正在补，先用下面 04.6 的方向族周次排期顶着。</div></div>';
+        '开工单目前覆盖 8 个技术栈：计算机轨 6 个（微服务 / AI 应用 / 数据 / 物联网 / 安全 / 数媒，' +
+        '课程对位《AI全栈开发工程师》《AI Agent全栈应用》），商科轨 2 个（调研与数据分析 / 轻应用上线，' +
+        '课程对位《AI 创造者》）。这个选题没命中任何栈 —— 先在 04.3 看角色排期，或在上面的下拉里手动选一个接近的栈。</div></div>';
     }
 
     if (ep) html += renderSchedule(p, ep);

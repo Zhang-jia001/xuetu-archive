@@ -979,9 +979,12 @@ select.input { appearance: none; padding-right: 26px;
 .lane-tbl th.lane-h b { display: block; font-size: 12px; font-weight: 600; color: var(--text); line-height: 1.5; }
 .lane-tbl th.lane-h span { display: block; font-size: 10.5px; color: var(--text-3); line-height: 1.5; }
 .lane-tbl th.lane-w {
-  min-width: 82px; width: 82px; text-align: center;
+  min-width: 86px; width: 86px; text-align: center;
   font-family: var(--mono); font-size: 11px; color: var(--text-3); font-weight: 500;
   background: var(--surface-2);
+}
+.lane-tbl th.lane-w span {
+  display: block; font-size: 10px; line-height: 1.5; color: var(--text-3);
 }
 .lane-c {
   text-align: center; padding: 4px 3px; vertical-align: middle;
