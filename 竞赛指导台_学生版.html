@@ -3650,9 +3650,10 @@ window.Api = (function () {
           '加入后你看到的是同一份进度，队长派给你的步骤会直接出现在这页。</p></div>';
       } else {
         html += '<div class="sec"><div class="sec-head"><span class="sec-num">或者</span>' +
-          '<h2 class="sec-title">登录后加入队友的项目</h2></div>' +
-          '<p class="small muted">队长建了项目，把邀请码发给你。登录并输入邀请码后，' +
-          '你就能看到同一份进度，并接手派给你的步骤。</p>' +
+          '<h2 class="sec-title">加入队友的项目</h2></div>' +
+          '<p class="small muted">队长建了项目会发你一个 6 位邀请码。<br>' +
+          '① 点下面按钮注册登录（30 秒）<br>' +
+          '② 登录后这页会出现邀请码输入框，填进去就进组，看到的是同一份进度。</p>' +
           '<button class="btn sm" data-open-auth="1">登录 / 注册</button></div>';
       }
     }
@@ -3859,9 +3860,22 @@ window.Api = (function () {
     $$('#coachBody [data-copy]').forEach(function (b) {
       b.addEventListener('click', function () {
         var code = b.getAttribute('data-copy');
-        var done = function () { b.textContent = '已复制'; setTimeout(function () { b.textContent = '复制'; }, 1500); };
+        var done = function () { b.textContent = '已复制'; setTimeout(function () { b.textContent = '复制邀请码'; }, 1500); };
         if (navigator.clipboard && navigator.clipboard.writeText) {
           navigator.clipboard.writeText(code).then(done).catch(done);
+        } else { done(); }
+      });
+    });
+    $$('#coachBody [data-copy-msg]').forEach(function (b) {
+      b.addEventListener('click', function () {
+        var code = b.getAttribute('data-copy-msg');
+        var msg = '来一起做竞赛！\n' +
+          '① 打开 ' + siteUrl() + ' ，点右上角「登录 / 注册」注册个账号（30 秒）\n' +
+          '② 打开「今天做什么」页，顶部「输入邀请码」框里填 ' + code + '\n' +
+          '③ 进组后进度互相可见：谁做完哪一步大家都看得到，队长派给你的步骤直接出现在你那页';
+        var done = function () { b.textContent = '已复制，发给队友吧'; setTimeout(function () { b.textContent = '复制邀请话术（发队友）'; }, 2000); };
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          navigator.clipboard.writeText(msg).then(done).catch(done);
         } else { done(); }
       });
     });
@@ -3892,6 +3906,13 @@ window.Api = (function () {
     return f.user + ' 做了更新';
   }
 
+  function siteUrl() {
+    try {
+      if (/^https?:$/.test(location.protocol)) return location.origin;
+    } catch (e) {}
+    return 'http://localhost:8787';
+  }
+
   function renderCoachCollab(p) {
     var on = window.Api && Api.online;
     var body = '';
@@ -3908,10 +3929,14 @@ window.Api = (function () {
       if (p.role === 'owner') {
         body += '<div class="invite-box"><div class="ib-k">项目邀请码</div>' +
           '<div class="ib-code mono">' + esc(p.inviteCode || '------') + '</div>' +
-          '<div class="ib-hint">把这一串发给队友。他们登录后输入就能加入，看到的是同一份进度。</div>' +
+          '<div class="ib-hint"><b>队友这样进组，3 步：</b><br>' +
+          '① 把网址发给队友：<span class="mono">' + esc(siteUrl()) + '</span><br>' +
+          '② 队友打开后，点右上角「登录 / 注册」注册一个账号（30 秒）<br>' +
+          '③ 在「今天做什么」页面顶部「输入邀请码」框里填这 6 位码，即进组</div>' +
           '<div class="ib-bar"><button class="btn ghost sm" data-invite="' + esc(p.id) + '">' +
           (p.inviteCode ? '换一个' : '生成邀请码') + '</button>' +
-          (p.inviteCode ? '<button class="btn sm" data-copy="' + esc(p.inviteCode) + '">复制</button>' : '') +
+          (p.inviteCode ? '<button class="btn sm ghost" data-copy="' + esc(p.inviteCode) + '">复制邀请码</button>' : '') +
+          (p.inviteCode ? '<button class="btn sm" data-copy-msg="' + esc(p.inviteCode) + '">复制邀请话术（发队友）</button>' : '') +
           '</div></div>';
       } else {
         body += '<p class="small muted">你是这个项目的队员。队长派给你的步骤会出现在上面那张卡里，做完点「我做完了」，队长那边刷新就能看到。</p>';
