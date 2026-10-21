@@ -270,7 +270,7 @@ button { touch-action: manipulation; }
     padding: 22px 14px 16px;
     z-index: 30;
   }
-  .main { margin-left: 248px; padding: 0 0 90px; }
+  .main { flex: 1; margin-left: 248px; padding: 0 0 90px; }
   .topbar { padding: 12px 0; gap: 12px; width: min(960px, calc(100% - 56px)); }
   .tb-brand { display: none; }
   .crumb { flex: 0 0 auto; white-space: normal; }
