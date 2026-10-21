@@ -765,24 +765,70 @@
       key: sk,
       st: D.plan.stacks[sk],
       ov: useDefault ? D.plan.ov[key] : null,
+      tv: (D.plan.tv || {})[key] || null,
       guessed: useDefault ? (D.plan.guess || []).indexOf(key) >= 0 : false,
       switched: !!p.planStack && p.planStack !== def,
       hasDefault: !!def
     };
   }
 
+  // 本题方案卡：选题池为这条选题标注的定位 / 技术路线 / 课程对位 / 验收物 / 团队
+  function planTopicCard(ep) {
+    var tv = ep.tv;
+    if (!tv) return '';
+    var showMine = !ep.switched && ep.hasDefault;
+    var nMine = 0, k;
+    if (showMine) for (k in tv.mine) nMine += tv.mine[k].length;
+    var row = function (label, val, cls) {
+      if (!val) return '';
+      return '<div class="tp-row' + (cls ? ' ' + cls : '') + '"><span class="tp-k">' + label + '</span>' +
+        '<div class="tp-v">' + esc(val) + '</div></div>';
+    };
+    var feas = '';
+    if (tv.team || tv.dur || tv.data || tv.method) {
+      var bits = [];
+      if (tv.team) bits.push('建议团队：' + tv.team);
+      if (tv.dur) bits.push('周期：' + tv.dur);
+      if (tv.data) bits.push('数据：' + tv.data);
+      if (tv.method) bits.push('方法：' + tv.method);
+      feas = bits.join('　·　');
+    }
+    return '<div class="tp-card"><div class="tp-head"><span class="tp-tag">按本题生成</span>' +
+      '这套开工单不是通用模板 —— 下面每一项都来自选题池为这道题做的标注' +
+      (showMine ? '，技术路线里的句子已拆到 D1–D7 对应的天（' + nMine + ' 处专属步骤）' : '') + '。</div>' +
+      row('本题定位', tv.back) +
+      row('技术路线', tv.route, 'tp-route') +
+      row('课程对位', tv.ref2 ? tv.ref2 + '（选题池标注）' : '', 'tp-ref') +
+      row('本题要交', tv.goal, 'tp-goal') +
+      row('数据与团队', feas) +
+      '</div>';
+  }
+
   function planToolTable(ep) {
+    var hit = {};
+    var tvT = (ep.switched || !ep.hasDefault) ? null : ep.tv;
+    ((tvT && tvT.toolsHit) || []).forEach(function (n) { hit[n] = 1; });
     return tableOf(['组件', '版本', '干什么用', '装不上怎么办'], ep.st.tools.map(function (t) {
-      return ['<b>' + esc(t.name) + '</b>' + (t.must ? ' <span class="k">必装</span>' : ''),
+      return ['<b>' + esc(t.name) + '</b>' +
+        (t.must ? ' <span class="k">必装</span>' : '') +
+        (hit[t.name] ? ' <span class="tag solid">本题用</span>' : ''),
         '<span class="mono nowrap">' + esc(t.ver) + '</span>',
         esc(t.why), '<span class="muted">' + esc(t.fb) + '</span>'];
     }));
   }
 
   function planDayCards(ep) {
+    var tv = (ep.switched || !ep.hasDefault) ? null : ep.tv;
     return '<div class="day-list">' + ep.st.days.map(function (d) {
+      var mineHtml = '';
+      if (tv && tv.mine && tv.mine[d.d] && tv.mine[d.d].length) {
+        mineHtml = '<div class="day-mine"><span class="k">本题专属</span><ul>' +
+          tv.mine[d.d].map(function (s) { return '<li>' + esc(s) + '</li>'; }).join('') +
+          '</ul><span class="tp-src">来自本题技术路线</span></div>';
+      }
       return '<div class="day"><div class="day-d mono">' + d.d + '</div><div class="day-body">' +
         '<div class="day-t">' + esc(d.title) + '</div>' +
+        mineHtml +
         '<ol class="day-todo">' + d.todo.map(function (x) { return '<li>' + esc(x) + '</li>'; }).join('') + '</ol>' +
         '<div class="day-out"><span class="k">交这个</span>' + esc(d.out) + '</div>' +
         (d.ref && d.ref.length
@@ -927,6 +973,98 @@
 
   function shortName(s) { return s.length > 8 ? s.slice(0, 8) : s; }
 
+  /* ---- 队员任务单：每个队员一份执行清单（角色操作套路 × 逐周任务 × 本题信息） ---- */
+  var curMember = 0;
+
+  function memberPlanHtml(p, ep) {
+    var tasks = (D.dev.tasks || {})[ep.key] || [];
+    if (!tasks.length) return '';
+    var roster = rosterOf(p);
+    if (!roster.length) return '';
+    var sc = buildSchedule(tasks, roster);
+    var how = (D.dev.how || {})[ep.key] || {};
+    var tv = ep.tv, t = T(p);
+    if (curMember >= roster.length) curMember = 0;
+    var m = roster[curMember];
+    var r = roleOf(m.role);
+
+    var wkStart = new Date(); wkStart.setHours(0, 0, 0, 0);
+    var wkRange = function (i) {
+      var s = new Date(wkStart.getTime() + (i - 1) * 7 * 864e5);
+      var e = new Date(s.getTime() + 6 * 864e5);
+      var f = function (d) { return (d.getMonth() + 1) + '.' + d.getDate(); };
+      return f(s) + '–' + f(e);
+    };
+
+    var html = '<div class="mp-chips">' + roster.map(function (x, i) {
+      return '<button type="button" class="mp-chip' + (i === curMember ? ' is-on' : '') +
+        '" data-mi="' + i + '"><b>' + esc(x.name) + '</b><span>' + esc(roleOf(x.role).n) + '</span></button>';
+    }).join('') + '</div>';
+
+    // 头部：这个人在本题的身份与本题要求
+    html += '<div class="mp-card"><div class="mp-head">' +
+      '<div class="mp-who"><b>' + esc(m.name) + '</b>' +
+      '<span class="mp-role">' + esc(r.n) + '</span>' +
+      (m.post ? '<span class="mp-post">组队岗位：' + esc(m.post) + '</span>' : '') +
+      (m.old === true ? ' <span class="tag solid">老学员</span>' : (m.old === false ? ' <span class="tag">新同学</span>' : '')) +
+      '</div>' +
+      '<div class="mp-duty">' + esc(r.d) + '</div>' +
+      (t ? '<div class="mp-topic">本题：<b>' + esc(t.选题名称) + '</b>　·　按「' + esc(ep.st.name) +
+        '」推进' + (tv && tv.goal ? '　·　最终要交：' + esc(tv.goal) : '') + '</div>' : '') +
+      '</div>';
+
+    // 角色操作套路
+    var steps = how[m.role] || [];
+    if (steps.length) {
+      html += '<div class="mp-sec"><div class="mp-sec-t">你的操作套路<span>' +
+        '这套步骤只属于「' + esc(r.n) + '」这个角色 —— 队里其他人看到的是他们自己的版本</span></div>' +
+        '<ol class="mp-steps">' + steps.map(function (s) {
+          return '<li><span class="mp-mod mono">' + esc(s[0]) + '</span>' +
+            '<div class="mp-step"><div class="mp-step-t">' + esc(s[1]) + '</div>' +
+            (s[2] ? '<div class="mp-step-ref' + (s[2].indexOf('⚠️') >= 0 ? ' is-ext' : '') + '">' +
+              (s[2].indexOf('·') >= 0 || s[2].indexOf('《') >= 0 || s[2].indexOf('⚠️') >= 0 ? '' : '课程｜') +
+              esc(s[2]) + '</div>' : '') + '</div></li>';
+        }).join('') + '</ol></div>';
+    }
+
+    // 逐周任务
+    var mine = (sc.lanes[m.i] || []).slice().sort(function (a, b) { return a.w - b.w; });
+    if (mine.length) {
+      var byWeek = {};
+      mine.forEach(function (x) { (byWeek[x.w] = byWeek[x.w] || []).push(x); });
+      html += '<div class="mp-sec"><div class="mp-sec-t">你的逐周任务<span>W1 从本周起算；做完一项勾一项，交不出的当周例会直接说</span></div>';
+      Object.keys(byWeek).map(Number).sort(function (a, b) { return a - b; }).forEach(function (w) {
+        html += '<div class="mp-week"><div class="mp-week-h mono">W' + w +
+          '<span>' + wkRange(w) + '</span></div>' +
+          byWeek[w].map(function (x) {
+            return '<div class="mp-task"><div class="mp-task-t"><b>' + esc(x.t.t) + '</b>' +
+              '<span class="faint mono">' + esc(x.t.id) + '</span>' +
+              (x.forced ? ' <span class="tag warn">强排</span>' : '') + '</div>' +
+              '<div class="mp-task-row"><span class="k">交这个</span>' + esc(x.t.out) + '</div>' +
+              '<div class="mp-task-row"><span class="k">怎么算完</span>' + esc(x.t.dod) + '</div>' +
+              '<div class="mp-task-row"><span class="k">手册</span><span class="cref">' + esc(x.t.book) + '</span>' +
+              '<span class="faint">　·　' + esc(x.t.mod) + '</span></div></div>';
+          }).join('') + '</div>';
+      });
+      html += '</div>';
+    } else {
+      html += '<div class="callout amber"><span class="ct">这个角色当前没排到任务</span>' +
+        '按现在的队伍配置，这个角色接不到任务（可能被别人兼了）。换角色或补人后这里会自动更新。</div>';
+    }
+
+    // 学什么
+    if (steps.length) {
+      var refs = [];
+      steps.forEach(function (s) { if (s[2] && s[2].indexOf('⚠️') < 0) refs.push(s[2]); });
+      if (refs.length) {
+        html += '<div class="mp-sec"><div class="mp-sec-t">你要学的课（只列这个角色用到的）</div>' +
+          '<div class="mp-refs">' + refs.filter(function (x, i, a) { return a.indexOf(x) === i; })
+            .map(function (x) { return '<span class="cref">' + esc(x) + '</span>'; }).join('') + '</div></div>';
+      }
+    }
+    return html + '</div>';
+  }
+
   function renderSchedule(p, ep) {
     var tasks = (D.dev.tasks || {})[ep.key] || [];
     if (!tasks.length) return '';
@@ -997,6 +1135,12 @@
         '这里的排期会按真实人马重排。' +
         '<div class="btn-row"><button class="btn" data-tab-go="team">去填队员 →</button></div></div>';
     }
+
+    // 队员任务单：每个队员一份可执行清单
+    html += '<h3>队员任务单</h3>' +
+      '<p class="small muted">点名字切换。每份任务单 = 这个角色的操作套路 ＋ 逐周任务（带日期）＋ 只列他要学的课。' +
+      '发给对应的人照着做就行 —— 不同角色看到的内容不一样，这是刻意的。</p>' +
+      '<div id="mpWrap">' + memberPlanHtml(p, ep) + '</div>';
 
     // 泳道（周次锚定到具体日期：W1 从今天起算）
     var maxW = sc.weeks;
@@ -1084,6 +1228,21 @@
     $$('#ptab-run [data-tab-go]').forEach(function (b) {
       b.addEventListener('click', function () { setTab(b.getAttribute('data-tab-go')); });
     });
+    // 队员任务单切人：只重渲染任务单区，不动整页
+    var onMpChip = function () {
+      curMember = +this.getAttribute('data-mi');
+      var ep = execPlan(p);
+      if (!ep) return;
+      var wrap = $('#ptab-run #mpWrap');
+      if (!wrap) return;
+      wrap.innerHTML = memberPlanHtml(p, ep);
+      $$('#ptab-run #mpWrap [data-mi]').forEach(function (x) {
+        x.addEventListener('click', onMpChip);
+      });
+    };
+    $$('#ptab-run #mpWrap [data-mi]').forEach(function (b) {
+      b.addEventListener('click', onMpChip);
+    });
   }
 
   function renderTabRun(p) {
@@ -1123,6 +1282,8 @@
       if (ep.ov && ep.ov.extra) {
         html += '<div class="callout amber"><span class="ct">这条选题特有的坑</span>' + esc(ep.ov.extra) + '</div>';
       }
+
+      html += planTopicCard(ep);
 
       html += '<h3>装这些，别多装</h3>' + planToolTable(ep) +
         '<div class="callout"><span class="ct">为什么只装这些</span>每多装一个组件，就多一个装不上、起不来的机会。第一周的目标不是把工具装全，是让 D5 那条链路能跑通 —— 跑通了再按需加。</div>';

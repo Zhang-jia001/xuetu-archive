@@ -140,6 +140,24 @@ t('技术栈可切换', !!q('#planStackSel') && qa('#planStackSel option').lengt
 t('学习路线三段', qa('#ptab-run .route').length === 3, qa('#ptab-run .route').length + ' 段');
 t('路线带课程对位', qa('#ptab-run .cref').length > 10, qa('#ptab-run .cref').length + ' 条');
 
+// 选题变量注入（按本题生成：技术路线 / 课程对位 / 验收物 / 逐日专属）
+t('本题方案卡存在', !!q('#ptab-run .tp-card'));
+t('本题技术路线展示', !!q('#ptab-run .tp-route') && q('#ptab-run .tp-route').textContent.length > 20);
+t('本题课程对位展示', !!q('#ptab-run .tp-ref') && q('#ptab-run .tp-ref').textContent.indexOf('选题池标注') >= 0);
+t('本题验收物展示', !!q('#ptab-run .tp-goal') && q('#ptab-run .tp-goal').textContent.length > 4);
+t('逐日本题专属注入', qa('#ptab-run .day-mine').length >= 3, qa('#ptab-run .day-mine').length + ' 天');
+t('选题变量 120 条全量', Object.keys(w.__DATA__.plan.tv).length === 120,
+  Object.keys(w.__DATA__.plan.tv).length + ' 条');
+{
+  // 「本题用」标记与数据一致：当前选题点名了几个组件，表里就标几个
+  const nm = (q('#ptab-run .mp-topic b') || {}).textContent || '';
+  const tp = w.__DATA__.topics.find((x) => x.选题名称 === nm);
+  const hits = tp ? ((w.__DATA__.plan.tv[String(tp.序号)] || {}).toolsHit || []) : [];
+  const marks = qa('#ptab-run .tag.solid').filter((x) => x.textContent.trim() === '本题用').length;
+  t('工具表「本题用」与数据一致', marks === hits.length && hits.length >= 1,
+    '数据 ' + hits.length + ' / UI ' + marks + ' 个');
+}
+
 // 分组开发排期
 t('泳道表存在', qa('#ptab-run .lane-tbl').length === 1);
 t('泳道有成员行', qa('#ptab-run .lane-tbl tbody tr').length >= 3, qa('#ptab-run .lane-tbl tbody tr').length + ' 行');
@@ -170,6 +188,27 @@ t('手册骨架 10 节', (q('#ptab-run').textContent.match(/§10/g) || []).lengt
     t('改角色被记住', !!s2 && s2.value !== orig);
     s2.value = orig;
     s2.dispatchEvent(new w.Event('change'));
+  }
+}
+// 队员任务单（每角色一份执行清单）
+t('队员任务单存在', qa('#ptab-run .mp-card').length === 1);
+t('角色操作套路渲染', qa('#ptab-run .mp-steps li').length >= 3,
+  qa('#ptab-run .mp-steps li').length + ' 步');
+t('逐周任务带日期', !!q('#ptab-run .mp-week-h') &&
+  /\d{1,2}\.\d{1,2}–\d{1,2}\.\d{1,2}/.test(q('#ptab-run .mp-week-h').textContent));
+t('任务单带手册节', qa('#ptab-run .mp-task').length >= 2, qa('#ptab-run .mp-task').length + ' 个');
+t('任务单挂本题验收物', q('#ptab-run .mp-topic').textContent.indexOf('最终要交') >= 0);
+{
+  const chips = qa('#ptab-run #mpWrap .mp-chip');
+  t('队员切换 chips', chips.length >= 2, chips.length + ' 人');
+  if (chips.length > 1) {
+    const before = q('#ptab-run .mp-who b').textContent;
+    chips[1].click();
+    const after = q('#ptab-run .mp-who b').textContent;
+    t('切人后任务单切换', after !== before, before + ' → ' + after);
+    const chip0 = qa('#ptab-run #mpWrap .mp-chip')[0];
+    chip0.click();
+    t('切回第一人', q('#ptab-run .mp-who b').textContent === before);
   }
 }
 {

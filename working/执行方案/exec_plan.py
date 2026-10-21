@@ -879,6 +879,139 @@ KEYWORD_BIZ = [
 ]
 
 
+# ---------------------------------------------------------------- 选题变量注入
+# 每栈「关键词 → 日次」规则：把选题「技术选型与落地」里的句子归到开工单 D1–D7 对应天。
+# 句子与天是双向匹配：句子含关键词即归入该天；一条句子可归多天（如同时点名 MySQL 和 RocketMQ）。
+import re as _re
+
+STACK_DAY_RULES = {
+    'microsvc': [
+        ('JDK', 'D1'), ('Maven', 'D1'), ('环境', 'D1'), ('IDEA', 'D1'),
+        ('SpringBoot', 'D1'), ('Spring Boot', 'D1'), ('Spring Boot', 'D1'), ('骨架', 'D1'), ('脚手架', 'D1'),
+        ('MySQL', 'D2'), ('建表', 'D2'), ('数据库', 'D2'), ('SQL', 'D2'), ('数据模型', 'D2'), ('MyBatis', 'D2'),
+        ('Docker', 'D3'), ('Redis', 'D3'), ('RocketMQ', 'D3'), ('Nacos', 'D3'), ('消息队列', 'D3'),
+        ('中间件', 'D3'), ('消息', 'D3'), ('Stream', 'D3'),
+        ('Feign', 'D4'), ('OpenFeign', 'D4'), ('注册中心', 'D4'), ('服务拆分', 'D4'), ('微服务', 'D4'),
+        ('Vue', 'D5'), ('前端', 'D5'), ('页面', 'D5'), ('网关', 'D5'), ('Gateway', 'D5'),
+        ('跨域', 'D5'), ('ECharts', 'D5'), ('看板', 'D5'), ('可视化', 'D5'),
+        ('文档', 'D6'), ('复现', 'D6'),
+        ('例会', 'D7'), ('验收', 'D7'), ('演示', 'D7'), ('压测', 'D7'), ('JMeter', 'D7'),
+        ('Sentinel', 'D7'), ('Seata', 'D7'), ('鉴权', 'D7'), ('OAuth', 'D7'), ('登录', 'D7'), ('安全', 'D7'),
+    ],
+    'ai_agent': [
+        ('Python', 'D1'), ('FastAPI', 'D1'), ('uvicorn', 'D1'), ('环境', 'D1'), ('依赖', 'D1'), ('SpringBoot', 'D1'),
+        ('Ollama', 'D2'), ('大模型', 'D2'), ('API', 'D2'), ('模型', 'D2'), ('DeepSeek', 'D2'), ('通义', 'D2'), ('智谱', 'D2'),
+        ('Agent', 'D3'), ('智能体', 'D3'), ('工具', 'D3'), ('Dify', 'D3'), ('工作流', 'D3'),
+        ('LangChain', 'D3'), ('LangGraph', 'D3'), ('编排', 'D3'),
+        ('RAG', 'D4'), ('文档', 'D4'), ('切分', 'D4'), ('向量', 'D4'), ('检索', 'D4'), ('embedding', 'D4'),
+        ('Embedding', 'D4'), ('Chroma', 'D4'), ('Elasticsearch', 'D4'), ('知识库', 'D4'), ('溯源', 'D4'), ('多模态', 'D4'),
+        ('MCP', 'D5'), ('外置', 'D5'),
+        ('评测', 'D6'), ('测试', 'D6'), ('Guardrails', 'D6'), ('护栏', 'D6'), ('校验', 'D6'),
+        ('例会', 'D7'), ('验收', 'D7'), ('演示', 'D7'), ('安全', 'D7'),
+    ],
+    'data': [
+        ('pandas', 'D1'), ('DataFrame', 'D1'), ('Jupyter', 'D1'), ('读取', 'D1'), ('体检', 'D1'),
+        ('采集', 'D2'), ('数据源', 'D2'), ('爬', 'D2'), ('入库', 'D2'), ('日志', 'D2'),
+        ('清洗', 'D3'), ('缺失', 'D3'), ('异常值', 'D3'), ('质检', 'D3'), ('去重', 'D3'),
+        ('描述统计', 'D4'), ('分析', 'D4'), ('统计', 'D4'), ('相关', 'D4'), ('推断', 'D4'),
+        ('结论', 'D4'), ('聚类', 'D4'), ('情感', 'D4'), ('分类', 'D4'),
+        ('ECharts', 'D5'), ('看板', 'D5'), ('可视化', 'D5'), ('图表', 'D5'), ('对比', 'D5'),
+        ('数据字典', 'D6'), ('复现', 'D6'), ('文档', 'D6'),
+        ('例会', 'D7'), ('口径', 'D7'), ('验收', 'D7'), ('演示', 'D7'),
+    ],
+    'iot': [
+        ('硬件', 'D1'), ('单片机', 'D1'), ('Arduino', 'D1'), ('接线', 'D1'), ('ESP32', 'D1'), ('STM32', 'D1'), ('选型', 'D1'),
+        ('传感器', 'D2'), ('标定', 'D2'), ('串口', 'D2'), ('采集', 'D2'),
+        ('MQTT', 'D3'), ('EMQX', 'D3'), ('上云', 'D3'), ('设备接入', 'D3'), ('协议', 'D3'),
+        ('建表', 'D4'), ('入库', 'D4'), ('MySQL', 'D4'), ('落库', 'D4'), ('告警', 'D4'), ('阈值', 'D4'),
+        ('ECharts', 'D5'), ('前端', 'D5'), ('页面', 'D5'), ('曲线', 'D5'), ('实时', 'D5'), ('看板', 'D5'), ('监测', 'D5'),
+        ('架构图', 'D6'), ('BOM', 'D6'), ('文档', 'D6'), ('复现', 'D6'),
+        ('例会', 'D7'), ('验收', 'D7'), ('演示', 'D7'), ('断电', 'D7'), ('功耗', 'D7'),
+    ],
+    'sec': [
+        ('靶场', 'D1'), ('Burp', 'D1'), ('Wireshark', 'D1'), ('抓包', 'D1'), ('DVWA', 'D1'), ('Pikachu', 'D1'), ('环境', 'D1'),
+        ('漏洞', 'D2'), ('PoC', 'D2'), ('复现', 'D2'), ('注入', 'D2'), ('越权', 'D2'),
+        ('防护', 'D3'), ('架构', 'D3'), ('检测点', 'D3'), ('脱敏', 'D3'),
+        ('检测', 'D4'), ('规则', 'D4'), ('风险分', 'D4'), ('模型', 'D4'), ('拦截', 'D4'),
+        ('攻防', 'D5'), ('误报', 'D5'), ('混淆矩阵', 'D5'), ('实验', 'D5'), ('样本', 'D5'),
+        ('合规', 'D6'), ('边界', 'D6'), ('报告', 'D6'), ('伦理', 'D6'),
+        ('例会', 'D7'), ('验收', 'D7'), ('演示', 'D7'),
+    ],
+    'media': [
+        ('对标', 'D1'), ('情绪板', 'D1'), ('视觉方向', 'D1'), ('关键词', 'D1'),
+        ('配色', 'D2'), ('字体', 'D2'), ('规范', 'D2'), ('栅格', 'D2'), ('色板', 'D2'),
+        ('界面', 'D3'), ('分镜', 'D3'), ('高保真', 'D3'), ('页面', 'D3'),
+        ('原型', 'D4'), ('交互', 'D4'), ('动效', 'D4'), ('Figma', 'D4'), ('MasterGo', 'D4'),
+        ('作品集', 'D5'), ('说明页', 'D5'), ('包装', 'D5'), ('叙事', 'D5'),
+        ('一致性', 'D6'), ('盲测', 'D6'), ('检查', 'D6'),
+        ('例会', 'D7'), ('验收', 'D7'), ('演示', 'D7'),
+    ],
+    'survey': [
+        ('六问', 'D1'), ('研究问题', 'D1'), ('假设', 'D1'), ('找题', 'D1'), ('验证', 'D1'), ('JTBD', 'D1'), ('妈妈测试', 'D1'),
+        ('问卷', 'D2'), ('量表', 'D2'), ('题项', 'D2'), ('出题', 'D2'), ('提示词', 'D2'), ('Prompt', 'D2'),
+        ('预调研', 'D3'), ('发放', 'D3'), ('问卷星', 'D3'), ('预填', 'D3'), ('回收', 'D3'),
+        ('清洗', 'D4'), ('Excel', 'D4'), ('Python', 'D4'), ('透视', 'D4'), ('无效样本', 'D4'),
+        ('交叉', 'D5'), ('分析', 'D5'), ('图表', 'D5'), ('Kano', 'D5'), ('PSM', 'D5'), ('价格', 'D5'),
+        ('统计', 'D5'), ('ECharts', 'D5'), ('看板', 'D5'), ('对比', 'D5'), ('可视化', 'D5'),
+        ('信效度', 'D6'), ('SPSS', 'D6'), ('JASP', 'D6'), ('访谈', 'D6'), ('转录', 'D6'),
+        ('编码', 'D6'), ('因子', 'D6'), ('联合分析', 'D6'), ('主题', 'D6'), ('检验', 'D6'),
+        ('例会', 'D7'), ('报告', 'D7'), ('目录', 'D7'), ('验收', 'D7'), ('结论', 'D7'),
+    ],
+    'lightapp': [
+        ('六问', 'D1'), ('访谈', 'D1'), ('用户', 'D1'), ('验证', 'D1'), ('痛点', 'D1'), ('妈妈测试', 'D1'),
+        ('MVP', 'D2'), ('PRD', 'D2'), ('需求', 'D2'), ('开发清单', 'D2'),
+        ('原型', 'D3'), ('MasterGo', 'D3'), ('设计', 'D3'), ('界面', 'D3'),
+        ('数据表', 'D4'), ('接口', 'D4'), ('闭环', 'D4'), ('数据库', 'D4'), ('MySQL', 'D4'),
+        ('AI', 'D5'), ('大模型', 'D5'), ('提示词', 'D5'), ('集成', 'D5'), ('推荐', 'D5'), ('生成', 'D5'), ('LangChain', 'D5'),
+        ('部署', 'D6'), ('上线', 'D6'), ('云', 'D6'), ('小程序', 'D6'), ('CloudBase', 'D6'), ('上架', 'D6'),
+        ('内测', 'D7'), ('反馈', 'D7'), ('迭代', 'D7'), ('例会', 'D7'), ('验收', 'D7'),
+    ],
+}
+
+
+def _split_plan(text):
+    parts = _re.split(r'[→；;。]', text or '')
+    return [p.strip('，,、 ') for p in parts if len(p.strip()) >= 6]
+
+
+def topic_vars(topic, stack_key):
+    """从选题字段提取变量：注入开工单与排期，做到每题一份专属方案。
+
+    back=背景  route=技术路线原文  ref2=选题池课程对位  goal=验收物
+    data/method/team/dur=可行性要点四段  mine=逐日专属句子  toolsHit=本题点名的组件
+    """
+    rules = STACK_DAY_RULES.get(stack_key, [])
+    text = topic.get('技术选型与落地', '')
+    mine = {}
+    for s in _split_plan(text):
+        for kw, day in rules:
+            if kw in s:
+                lst = mine.setdefault(day, [])
+                if s not in lst:
+                    lst.append(s)
+    feas = topic.get('可行性要点', '')
+
+    def grab(label):
+        m = _re.search(label + r'[：:](.+?)(?:[；;。]|$)', feas)
+        return m.group(1).strip() if m else ''
+
+    st = STACKS[stack_key]
+    low = text.lower()
+    hit = []
+    for tk in st['tools']:
+        nm = TOOLS[tk]['name'].split(' ')[0].split('/')[0]
+        if nm and nm.lower() in low:
+            hit.append(TOOLS[tk]['name'])  # 存显示名，前端按名字标「本题用」
+    return dict(
+        back=topic.get('选题背景要点', ''),
+        route=text,
+        ref2=topic.get('课程对位', ''),
+        goal=topic.get('验收物', ''),
+        data=grab('数据'), method=grab('方法'), team=grab('团队'), dur=grab('时间'),
+        mine=mine, toolsHit=hit,
+    )
+
+
 def guess_stack(topic):
     """计算机类按技术关键词兜底；商科类按商业关键词兜底（默认调研轨）。"""
     if topic.get('专业类别') == '计算机':
@@ -948,8 +1081,8 @@ def plan_of(topic):
 
 
 def build_all(topics):
-    """构建期内联用：只输出被引用到的栈模板 + 每条选题对应的栈 key + 覆盖说明。"""
-    idx_map, ov_map, guess_set = {}, {}, []
+    """构建期内联用：栈模板 + 每选题栈 key + 覆盖说明 + 选题变量（tv）。"""
+    idx_map, ov_map, guess_set, tv_map = {}, {}, [], {}
     for t in topics:
         i = t.get('序号')
         ov = TOPIC_OVERRIDE.get(i)
@@ -964,6 +1097,7 @@ def build_all(topics):
         if ov:
             ov_map[str(i)] = dict(extra=ov['extra'],
                                   tools=[TOOLS[x] for x in ov['tools']])
+        tv_map[str(i)] = topic_vars(t, sk)  # 按默认栈注入；手动换栈时前端只显示通用块
     stacks = {}
     for k, st in STACKS.items():
         stacks[k] = dict(
@@ -971,7 +1105,7 @@ def build_all(topics):
             tools=[TOOLS[x] for x in st['tools']],
             days=st['days'], route=st['route'],
         )
-    return dict(stacks=stacks, of=idx_map, ov=ov_map, guess=guess_set)
+    return dict(stacks=stacks, of=idx_map, ov=ov_map, guess=guess_set, tv=tv_map)
 
 
 if __name__ == '__main__':
@@ -984,6 +1118,13 @@ if __name__ == '__main__':
     out = build_all(topics)
     hit = len(out['of'])
     comp = sum(1 for t in topics if t.get('专业类别') == '计算机')
-    print('栈数=%d  命中选题=%d / 计算机选题=%d  选题级覆盖=%d' % (len(out['stacks']), hit, comp, len(out['ov'])))
-    miss = [t['序号'] for t in topics if t.get('专业类别') == '计算机' and str(t['序号']) not in out['of']]
-    print('未命中计算机选题:', miss)
+    print('栈数=%d  命中选题=%d / 120  选题级覆盖=%d  选题变量=%d' % (
+        len(out['stacks']), hit, len(out['ov']), len(out['tv'])))
+    # 选题变量自检：每条命中选题都有技术路线与验收物；mine 覆盖面统计
+    empty = [k for k, v in out['tv'].items() if not v['route'] or not v['goal']]
+    assert not empty, 'tv 缺技术路线/验收物的选题: %s' % empty
+    n_mine = sum(len(v['mine']) for v in out['tv'].values())
+    n_sents = sum(len(_split_plan(v['route'])) for v in out['tv'].values())
+    print('逐日专属注入：句子 %d 条，命中天次 %d 处（未命中的句子仍完整显示在「本题技术路线」卡）' % (n_sents, n_mine))
+    miss = [t['序号'] for t in topics if str(t['序号']) not in out['of']]
+    print('未命中选题:', miss)
